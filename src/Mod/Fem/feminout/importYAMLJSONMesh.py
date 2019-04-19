@@ -92,7 +92,7 @@ def convert_femmesh_to_dict(femmesh):
     pent6 = []
     pent15 = []
 
-    # associations for lens of tuples to different
+    # associations for lenghts of tuples to different
     # edge, face, and volume elements
 
     len_to_edge = {2: seg2, 3: seg3}
@@ -168,7 +168,8 @@ def convert_raw_data_to_mesh_data(raw_mesh_data):
 def export(objectslist, fileString):
     "called when freecad exports a file"
     if len(objectslist) != 1:
-        FreeCAD.Console.PrintError("This exporter can only export one object.\n")
+        FreeCAD.Console.PrintError("This exporter can only " +
+                                   "export one object.\n")
         return
     obj = objectslist[0]
     if not obj.isDerivedFrom("Fem::FemMeshObject"):
@@ -183,7 +184,8 @@ def export(objectslist, fileString):
             fp = pyopen(fileString, "wt")
             json.dump(mesh_data, fp, indent=4)
             fp.close()
-        elif (fileExtension.lower() == ".yaml" or fileExtension.lower() == ".yml") and has_yaml:
+        elif (fileExtension.lower() == ".yaml" or
+              fileExtension.lower() == ".yml") and has_yaml:
             fp = pyopen(fileString, "wt")
             yaml.safe_dump(mesh_data, fp)
             fp.close()
@@ -203,12 +205,14 @@ def import_yaml_json_mesh(fileString, analysis=None):
         fp = pyopen(fileString, "rt")
         raw_mesh_data = json.load(fp)
         fp.close()
-    elif (fileExtension.lower() == ".yaml" or fileExtension.lower() == ".yml") and has_yaml:
+    elif (fileExtension.lower() == ".yaml" or
+          fileExtension.lower() == ".yml") and has_yaml:
         fp = pyopen(fileString, "rt")
         raw_mesh_data = yaml.load(fp)
         fp.close()
     else:
-        FreeCAD.Console.PrintError("Unknown extension, please select other importer.\n")
+        FreeCAD.Console.PrintError("Unknown extension, " +
+                                   "please select other importer.\n")
 
     FreeCAD.Console.PrintMessage("Converting indices to integer numbers ...")
     mesh_data = convert_raw_data_to_mesh_data(raw_mesh_data)
