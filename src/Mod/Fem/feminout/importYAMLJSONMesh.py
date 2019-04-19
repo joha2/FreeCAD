@@ -37,7 +37,8 @@ has_yaml = True
 try:
     import yaml
 except ImportError:
-    FreeCAD.Console.PrintMessage("No YAML available (import yaml failure), yaml import/export won't work\n")
+    FreeCAD.Console.PrintMessage("No YAML available (import yaml failure), " +
+                                 "yaml import/export won't work\n")
     has_yaml = False
 
 
@@ -51,6 +52,7 @@ if open.__module__ == '__builtin__':
 elif open.__module__ == 'io':
     # because we'll redefine open below (Python3)
     pyopen = open
+
 
 def open(filename):
     "called when freecad opens a file"
@@ -78,26 +80,10 @@ def convert_femmesh_to_dict(femmesh):
     seg2 = []
     seg3 = []
 
-    # analyze edges
-
-    len_to_edge = {2: seg2, 3: seg3}
-
-    for e in femmesh.Edges:
-        t = femmesh.getElementNodes(e)
-        len_to_edge[len(t)].append((e, t))
-
     tri3 = []
     tri6 = []
     quad4 = []
     quad8 = []
-
-    # analyze faces
-
-    len_to_face = {3: tri3, 6: tri6, 4: quad4, 8: quad8}
-
-    for f in femmesh.Faces:
-        t = femmesh.getElementNodes(f)
-        len_to_face[len(t)].append((f, t))
 
     tet4 = []
     tet10 = []
@@ -106,14 +92,31 @@ def convert_femmesh_to_dict(femmesh):
     pent6 = []
     pent15 = []
 
-    # analyze volumes
+    # associations for lens of tuples to different
+    # edge, face, and volume elements
 
+    len_to_edge = {2: seg2, 3: seg3}
+    len_to_face = {3: tri3, 6: tri6, 4: quad4, 8: quad8}
     len_to_volume = {4: tet4,
                      10: tet10,
                      8: hex8,
                      20: hex20,
                      6: pent6,
                      15: pent15}
+
+    # analyze edges
+
+    for e in femmesh.Edges:
+        t = femmesh.getElementNodes(e)
+        len_to_edge[len(t)].append((e, t))
+
+    # analyze faces
+
+    for f in femmesh.Faces:
+        t = femmesh.getElementNodes(f)
+        len_to_face[len(t)].append((f, t))
+
+    # analyze volumes
 
     for v in femmesh.Volumes:
         t = femmesh.getElementNodes(v)
@@ -135,7 +138,12 @@ def convert_femmesh_to_dict(femmesh):
         'Hexa8Elem': dict(hex8),
         'Hexa20Elem': dict(hex20),
         'Penta6Elem': dict(pent6),
-        'Penta15Elem': dict(pent15)
+        'Penta15Elem': dict(pent15),
+
+        'Groups': dict([(group_num,
+                         (femmesh.getGroupName(group_num),
+                          femmesh.getGroupElements(group_num))
+                         ) for group_num in femmesh.Groups])
     }
     # no pyr5, pyr13?
     # no groups?
@@ -151,7 +159,9 @@ def convert_raw_data_to_mesh_data(raw_mesh_data):
     """
     mesh_data = {}
     for (type_key, type_dict) in raw_mesh_data.items():
-        mesh_data[type_key] = dict([(int(k), v) for (k, v) in type_dict.items()])
+        if type_key.lower() != "groups":
+            mesh_data[type_key] = dict([(int(k), v)
+                                        for (k, v) in type_dict.items()])
     return mesh_data
 
 
