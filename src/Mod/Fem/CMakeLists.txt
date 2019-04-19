@@ -49,6 +49,7 @@ SET(FemInOut_SRCS
     feminout/importCcxDatResults.py
     feminout/importCcxFrdResults.py
     feminout/importFenicsMesh.py
+    feminout/importYAMLJSONMesh.py
     feminout/importInpMesh.py
     feminout/importToolsFem.py
     feminout/importVTKResults.py
