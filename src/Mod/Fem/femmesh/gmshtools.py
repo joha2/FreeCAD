@@ -35,6 +35,7 @@ import subprocess
 import tempfile
 from platform import system
 import sys
+import multiprocessing
 
 
 class GmshTools():
@@ -572,10 +573,28 @@ class GmshTools():
         geo.close()
 
     def run_gmsh_with_geo(self):
-        comandlist = [self.gmsh_bin, '-', self.temp_file_geo]
-        # print(comandlist)
+
+        gmsh_prefs = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Fem/Gmsh")
+        gmsh_additional_commands = gmsh_prefs.GetString("GmshAdditionalArguments").split()
+        gmsh_number_threads = gmsh_prefs.GetInt("GmshNumberThreads")
+
+        # determine number of threads automatically
+        if gmsh_number_threads == 0:
+            try:
+                gmsh_number_threads = multiprocessing.cpu_count()
+            except NotImplementedError:
+                # failsafe solution if number of cpus cannot be determined
+                # https://stackoverflow.com/questions/53537230/difference-between-multiprocessing-cpu-count-and-os-cpu-count
+                gmsh_number_threads = 1
+
+        # gmsh ignores gmsh_number_threads > 1 except compiled with:
+        # cmake -DENABLE_MP=1 -DENABLE_MPI=1
+        commandlist = [self.gmsh_bin] + gmsh_additional_commands +\
+                      ['nt', '%d' % (gmsh_number_threads,)] +\
+                      ['-', self.temp_file_geo]
+        # print(commandlist)
         try:
-            p = subprocess.Popen(comandlist, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(commandlist, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = p.communicate()
             if sys.version_info.major >= 3:
                 output = output.decode('utf-8')
@@ -583,7 +602,7 @@ class GmshTools():
             # print(output)  # stdout is still cut at some point but the warnings are in stderr and thus printed :-)
             # print(error)
         except:
-            error = 'Error executing: {}\n'.format(" ".join(comandlist))
+            error = 'Error executing: {}\n'.format(" ".join(commandlist))
             FreeCAD.Console.PrintError(error)
             self.error = True
         return error
