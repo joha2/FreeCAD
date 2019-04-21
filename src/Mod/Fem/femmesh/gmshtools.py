@@ -609,10 +609,21 @@ class GmshTools():
                 error = error.decode('utf-8')
             # print(output)  # stdout is still cut at some point but the warnings are in stderr and thus printed :-)
             # print(error)
-        except:
-            error = 'Error executing: {}\n'.format(" ".join(commandlist))
+            # avoid bare except:
+            # https://stackoverflow.com/questions/26982603/which-exceptions-besides-oserror-can-subprocess-popen-raise
+        except OSError:
+            error = 'OSError executing: {}\n'.format(" ".join(commandlist))
             FreeCAD.Console.PrintError(error)
             self.error = True
+        except ValueError:
+            error = 'Invalid arguments to subprocess.Popen: {}\n'.format(" ".join(commandlist))
+            FreeCAD.Console.PrintError(error)
+            self.error = True
+        except AssertionError:
+            error = 'Assertion error in subprocess.Popen: {}\n'.format(" ".join(commandlist))
+            FreeCAD.Console.PrintError(error)
+            self.error = True
+
         return error
 
     def read_and_set_new_mesh(self):
