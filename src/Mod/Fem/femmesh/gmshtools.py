@@ -76,7 +76,8 @@ class GmshTools():
         self.dimension = self.mesh_obj.ElementDimension
 
         # Algorithm2D
-        # known_mesh_algorithm_2D = ['Automatic', 'MeshAdapt', 'Delaunay', 'Frontal', 'BAMG', 'DelQuad']
+        # known_mesh_algorithm_2D = ['Automatic', 'MeshAdapt', 'Delaunay',
+        #                            'Frontal', 'BAMG', 'DelQuad']
         algo2D = self.mesh_obj.Algorithm2D
         if algo2D == 'Automatic':
             self.algorithm2D = '2'
@@ -90,14 +91,19 @@ class GmshTools():
             self.algorithm2D = '7'
         elif algo2D == 'DelQuad':
             self.algorithm2D = '8'
+        elif algo2D == 'PackPara':
+            self.algorithm2D = '9'
         else:
             self.algorithm2D = '2'
 
         # Algorithm3D
-        # known_mesh_algorithm_3D = ['Automatic', 'Delaunay', 'New Delaunay', 'Frontal', 'Frontal Delaunay', 'Frontal Hex', 'MMG3D', 'R-tree']
+        # known_mesh_algorithm_3D = ['Automatic', 'Delaunay', 'New Delaunay',
+        #                            'Frontal', 'Frontal Delaunay',
+        #                            'Frontal Hex', 'MMG3D', 'R-tree',
+        #                            'HXT']
         algo3D = self.mesh_obj.Algorithm3D
         if algo3D == 'Automatic':
-            self.algorithm3D = '1'
+            self.algorithm3D = '10'
         elif algo3D == 'Delaunay':
             self.algorithm3D = '1'
         elif algo3D == 'New Delaunay':
@@ -112,6 +118,8 @@ class GmshTools():
             self.algorithm3D = '7'
         elif algo3D == 'R-tree':
             self.algorithm3D = '9'
+        elif algo3D == 'HXT':
+            self.algorithm3D = '10'
         else:
             self.algorithm3D = '1'
 

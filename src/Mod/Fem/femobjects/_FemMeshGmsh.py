@@ -36,8 +36,11 @@ class _FemMeshGmsh():
     # they will be used from the task panel too, thus they need to be outside of the __init__
     known_element_dimensions = ['From Shape', '1D', '2D', '3D']
     known_element_orders = ['1st', '2nd']
-    known_mesh_algorithm_2D = ['Automatic', 'MeshAdapt', 'Delaunay', 'Frontal', 'BAMG', 'DelQuad']
-    known_mesh_algorithm_3D = ['Automatic', 'Delaunay', 'New Delaunay', 'Frontal', 'Frontal Delaunay', 'Frontal Hex', 'MMG3D', 'R-tree']
+    known_mesh_algorithm_2D = ['Automatic', 'MeshAdapt', 'Delaunay', 'Frontal',
+                               'BAMG', 'DelQuad', 'PackPara']
+    known_mesh_algorithm_3D = ['Automatic', 'Delaunay', 'New Delaunay',
+                               'Frontal', 'Frontal Delaunay', 'Frontal Hex',
+                               'MMG3D', 'R-tree', 'HXT']
 
     def __init__(self, obj):
         self.Type = "Fem::FemMeshGmsh"
