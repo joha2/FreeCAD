@@ -598,7 +598,7 @@ class GmshTools():
         # gmsh ignores gmsh_number_threads > 1 except compiled with:
         # cmake -DENABLE_OPENMP=1 -DENABLE_MPI=1
         commandlist = [self.gmsh_bin] + gmsh_additional_commands +\
-                      ['nt', '%d' % (gmsh_number_threads,)] +\
+                      ['-nt', '%d' % (gmsh_number_threads,)] +\
                       ['-', self.temp_file_geo]
         # print(commandlist)
         try:
