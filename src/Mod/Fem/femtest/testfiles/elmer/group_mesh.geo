@@ -27,7 +27,7 @@ Mesh.ElementOrder = 2;
 // 2D mesh algorithm (1=MeshAdapt, 2=Automatic, 5=Delaunay, 6=Frontal, 7=BAMG, 8=DelQuad)
 Mesh.Algorithm = 2;
 // 3D mesh algorithm (1=Delaunay, 2=New Delaunay, 4=Frontal, 5=Frontal Delaunay, 6=Frontal Hex, 7=MMG3D, 9=R-tree)
-Mesh.Algorithm3D = 1;
+Mesh.Algorithm3D = 10;
 
 // meshing
 Geometry.Tolerance = 1e-06; // set geometrical tolerance (also used for merging nodes)
@@ -45,7 +45,7 @@ Save "/tmp/tmpjVhNNb.unv";
 // GMSH documentation:
 // http://gmsh.info/doc/texinfo/gmsh.html#Mesh
 //
-// We do not check if something went wrong, like negative jacobians etc. You can run GMSH manually yourself: 
+// We do not check if something went wrong, like negative jacobians etc. You can run GMSH manually yourself:
 //
 // to see full GMSH log, run in bash:
 // /usr/local/bin/gmsh - /tmp/tmputZ_uU.geo
