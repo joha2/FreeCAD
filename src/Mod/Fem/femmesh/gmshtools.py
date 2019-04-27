@@ -103,7 +103,7 @@ class GmshTools():
         #                            'HXT']
         algo3D = self.mesh_obj.Algorithm3D
         if algo3D == 'Automatic':
-            self.algorithm3D = '10'
+            self.algorithm3D = '1'
         elif algo3D == 'Delaunay':
             self.algorithm3D = '1'
         elif algo3D == 'New Delaunay':
