@@ -184,6 +184,7 @@ SET(FemTestsMesh_SRCS
     femtest/testfiles/mesh/tetra10_mesh.inp
     femtest/testfiles/mesh/tetra10_mesh.unv
     femtest/testfiles/mesh/tetra10_mesh.vtk
+    femtest/testfiles/mesh/tetra10_mesh.yml
     femtest/testfiles/mesh/tetra10_mesh.z88
 )
 
