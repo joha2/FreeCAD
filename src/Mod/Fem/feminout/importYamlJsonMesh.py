@@ -45,8 +45,8 @@ except ImportError:
     has_yaml = False
 
 
-# ************************************************************************************************
-# ********* generic FreeCAD import and export methods ********************************************
+# ****************************************************************************
+# ********* generic FreeCAD import and export methods ************************
 # names are fix given from FreeCAD, these methods are called from FreeCAD
 # they are set in FEM modules Init.py
 
@@ -94,18 +94,21 @@ def export(objectslist, fileString):
     write(fileString, obj.FemMesh)
 
 
-# ************************************************************************************************
-# ********* module specific methods **************************************************************
+# ****************************************************************************
+# ********* module specific methods ******************************************
 # reader:
-# - a method uses a FemMesh instance, creates the FreeCAD document object and returns this object
-# - a method creates and returns a FemMesh (no FreeCAD document object) out of the FEM mesh dict
-# - a method reads the data from the mesh file or converts data and returns FEM mesh dictionary
+# - a method uses a FemMesh instance, creates the FreeCAD document object and
+#     returns this object
+# - a method creates and returns a FemMesh (no FreeCAD document object) out
+#     of the FEM mesh dict
+# - a method reads the data from the mesh file or converts data and returns
+#     FEM mesh dictionary
 #
 # writer:
 # - a method directly writes a FemMesh to the mesh file
 # - a method converts a FemMesh into a FEM mesh dictionary
 
-# ********* reader *******************************************************************************
+# ********* reader ***********************************************************
 def import_yaml_json_mesh(
     fileString
 ):
@@ -138,12 +141,15 @@ def read(
     fileExtension = os.path.basename(os.path.splitext(fileString)[1])
 
     raw_mesh_data = {}
-    if fileExtension.lower() == ".json":
+    if fileExtension.lower() == ".meshjson" or\
+       fileExtension.lower() == ".json":
         fp = pyopen(fileString, "rt")
         raw_mesh_data = json.load(fp)
         fp.close()
-    elif (fileExtension.lower() == ".yaml" or fileExtension.lower() == ".yml") \
-            and has_yaml:
+    elif (fileExtension.lower() == ".meshyaml" or
+          fileExtension.lower() == ".meshyml" or
+          fileExtension.lower() == ".yaml" or
+          fileExtension.lower() == ".yml") and has_yaml:
         fp = pyopen(fileString, "rt")
         raw_mesh_data = yaml.load(fp)
         fp.close()
@@ -178,112 +184,30 @@ def convert_raw_data_to_mesh_data(
     return mesh_data
 
 
-# ********* writer *******************************************************************************
+# ********* writer ***********************************************************
 def write(
-    fem_mesh,
-    fileString
+    fileString,
+    fem_mesh
 ):
     '''directly write a FemMesh to a  a yaml/json mesh file
     fem_mesh: a FemMesh'''
 
-    mesh_data = convert_femmesh_to_dict(fem_mesh)
+    mesh_data = importToolsFem.make_dict_from_femmesh(fem_mesh)
 
     if fileString != "":
         fileName, fileExtension = os.path.splitext(fileString)
-        if fileExtension.lower() == ".json":
+        if fileExtension.lower() == ".json" or\
+           fileExtension.lower() == ".meshjson":
             fp = pyopen(fileString, "wt")
             json.dump(mesh_data, fp, indent=4)
             fp.close()
-        elif (fileExtension.lower() == ".yaml" or fileExtension.lower() == ".yml") \
+        elif (fileExtension.lower() == ".meshyaml" or
+              fileExtension.lower() == ".meshyml" or
+              fileExtension.lower() == ".yaml" or
+              fileExtension.lower() == ".yml") \
                 and has_yaml:
             fp = pyopen(fileString, "wt")
             yaml.safe_dump(mesh_data, fp)
             fp.close()
 
 
-def convert_femmesh_to_dict(
-    femmesh
-):
-    """
-    Converts FemMesh into dictionary structure which can immediately used
-    from importToolsFem.make_femmesh(mesh_data) to create a valid FEM mesh.
-    """
-    # the writer needs this method
-    mesh_data = {}
-
-    seg2 = []
-    seg3 = []
-
-    tri3 = []
-    tri6 = []
-    quad4 = []
-    quad8 = []
-
-    tet4 = []
-    tet10 = []
-    hex8 = []
-    hex20 = []
-    pent6 = []
-    pent15 = []
-
-    # associations for lengths of tuples to different
-    # edge, face, and volume elements
-
-    len_to_edge = {2: seg2, 3: seg3}
-    len_to_face = {3: tri3, 6: tri6, 4: quad4, 8: quad8}
-    len_to_volume = {
-        4: tet4,
-        10: tet10,
-        8: hex8,
-        20: hex20,
-        6: pent6,
-        15: pent15
-    }
-
-    # analyze edges
-
-    for e in femmesh.Edges:
-        t = femmesh.getElementNodes(e)
-        len_to_edge[len(t)].append((e, t))
-
-    # analyze faces
-
-    for f in femmesh.Faces:
-        t = femmesh.getElementNodes(f)
-        len_to_face[len(t)].append((f, t))
-
-    # analyze volumes
-
-    for v in femmesh.Volumes:
-        t = femmesh.getElementNodes(v)
-        len_to_volume[len(t)].append((v, t))
-
-    mesh_data = {
-        'Nodes': dict([(k, (v.x, v.y, v.z))
-                       for (k, v) in femmesh.Nodes.items()]),
-        'Seg2Elem': dict(seg2),
-        'Seg3Elem': dict(seg3),
-
-        'Tria3Elem': dict(tri3),
-        'Tria6Elem': dict(tri6),
-        'Quad4Elem': dict(quad4),
-        'Quad8Elem': dict(quad8),
-
-        'Tetra4Elem': dict(tet4),
-        'Tetra10Elem': dict(tet10),
-        'Hexa8Elem': dict(hex8),
-        'Hexa20Elem': dict(hex20),
-        'Penta6Elem': dict(pent6),
-        'Penta15Elem': dict(pent15),
-
-        'Groups': dict([(
-            group_num, (
-                femmesh.getGroupName(group_num),
-                femmesh.getGroupElements(group_num)
-            )
-        ) for group_num in femmesh.Groups])
-
-    }
-    # no pyr5, pyr13?
-    # no groups?
-    return mesh_data
