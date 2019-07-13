@@ -167,6 +167,16 @@
                 </UserDocu>
             </Documentation>
         </Methode>
+        <Methode Name="addGroupElements" Const="true">
+            <Documentation>
+                <UserDocu>Add a tuple of ElementIDs to a given group ID
+                    addGroupElements(groupid, list_of_elements)
+                    groupid: int
+                    list_of_elements: list of int
+                    Notice that the elements have to be in the mesh.
+                </UserDocu>
+            </Documentation>
+        </Methode>
         <Methode Name="getElementType" Const="true">
             <Documentation>
                 <UserDocu>Return the element type of a given ID</UserDocu>
