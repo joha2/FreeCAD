@@ -158,6 +158,15 @@
                 <UserDocu>Return a tuple of ElementIDs to a given group ID</UserDocu>
             </Documentation>
         </Methode>
+        <Methode Name="addGroup" Const="true">
+            <Documentation>
+                <UserDocu>Add a group to mesh with specific name and type
+                    addGroup(name, typestring)
+                    name: string
+                    typestring: \"All\", \"Node\", \"Edge\", \"Face\", \"Volume\", \"0DElement\", \"Ball\"
+                </UserDocu>
+            </Documentation>
+        </Methode>
         <Methode Name="getElementType" Const="true">
             <Documentation>
                 <UserDocu>Return the element type of a given ID</UserDocu>
