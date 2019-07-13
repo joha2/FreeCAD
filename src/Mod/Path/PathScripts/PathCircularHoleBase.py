@@ -50,8 +50,8 @@ __url__ = "http://www.freecadweb.org"
 __doc__ = "Base class an implementation for operations on circular holes."
 __contributors__ = "russ4262 (Russell Johnson)"
 __created__ = "2017"
-__scriptVersion__ = "1c testing"
-__lastModified__ = "2019-06-25 14:49 CST"
+__scriptVersion__ = "1d testing"
+__lastModified__ = "2019-07-12 09:58 CST"
 
 
 # Qt translation handling
@@ -216,7 +216,7 @@ class ObjectOp(PathOp.ObjectOp):
             PathLog.debug("Exec. opHeights[0]: " + str(opHeights[0]))
             PathLog.debug("Exec. opHeights[1]: " + str(opHeights[1]))
 
-            # Set clearnance and safe heights based upon rotation radii
+            # Set clearance and safe heights based upon rotation radii
             if obj.EnableRotation == 'A(x)':
                 strDep = self.xRotRad
             elif obj.EnableRotation == 'B(y)':
@@ -228,7 +228,7 @@ class ObjectOp(PathOp.ObjectOp):
             obj.ClearanceHeight.Value = strDep + clrOfset
             obj.SafeHeight.Value = strDep + safOfst
 
-            # Create visual axises when debugging.
+            # Create visual axes when debugging.
             if PathLog.getLevel(PathLog.thisModule()) == 4:
                 self.visualAxis()
 
@@ -255,7 +255,7 @@ class ObjectOp(PathOp.ObjectOp):
                         if rtn is True:
                             (clnBase, angle, clnStock, tag) = self.applyRotationalAnalysis(obj, base, angle, axis, subCount)
                             # Verify faces are correctly oriented - InverseAngle might be necessary
-                            PathLog.debug("Verifing {} orientation: running faceRotationAnalysis() again.".format(sub))
+                            PathLog.debug("Verifying {} orientation: running faceRotationAnalysis() again.".format(sub))
                             faceIA = getattr(clnBase.Shape, sub)
                             (norm, surf) = self.getFaceNormAndSurf(faceIA)
                             (rtn, praAngle, praAxis, praInfo) = self.faceRotationAnalysis(obj, norm, surf) # pylint: disable=unused-variable
@@ -269,7 +269,7 @@ class ObjectOp(PathOp.ObjectOp):
                                     if len(subsList) == 1:
                                         msg += translate("Path", "Consider toggling the 'InverseAngle' property and recomputing.")
                                     else:
-                                        msg += translate("Path", "Consider transfering '{}' to independent operation.".format(sub))
+                                        msg += translate("Path", "Consider transferring '{}' to independent operation.".format(sub))
                                 PathLog.warning(msg)
                                 # title = translate("Path", 'Rotation Warning')
                                 # self.guiMessage(title, msg, False)
@@ -323,7 +323,7 @@ class ObjectOp(PathOp.ObjectOp):
 
                         # If user has not adjusted Final Depth value, attempt to determine from sub
                         if obj.OpFinalDepth.Value == obj.FinalDepth.Value:
-                            PathLog.info(translate('Path', 'Auto detecting Final Depth based on {}.'.format(sub)))
+                            PathLog.debug(translate('Path', 'Auto detecting Final Depth based on {}.'.format(sub)))
                             trgtDep = finDep
                         else:
                             trgtDep = max(obj.FinalDepth.Value, finDep)
@@ -479,7 +479,6 @@ class ObjectOp(PathOp.ObjectOp):
 
         praInfo = "faceRotationAnalysis(): "
         rtn = True
-        axis = 'X'
         orientation = 'X'
         angle = 500.0
         precision = 6
@@ -582,6 +581,8 @@ class ObjectOp(PathOp.ObjectOp):
                     axis = 'X'
                 else:
                     rtn = False
+        elif orientation == 'Z':
+            axis = 'X'
 
         if math.fabs(angle) == 0.0:
             angle = 0.0
