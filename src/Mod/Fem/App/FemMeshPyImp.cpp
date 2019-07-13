@@ -1033,6 +1033,58 @@ PyObject* FemMeshPy::getGroupElements(PyObject *args)
     return Py::new_reference_to(tuple);
 }
 
+/*
+Add Groups and elements to these.
+*/
+
+PyObject* FemMeshPy::addGroup(PyObject *args)
+{
+    // get name and typestring from arguments
+    char* Name;
+    char* typeString;
+    if (!PyArg_ParseTuple(args, "etet","utf-8", &Name, "utf-8", &typeString))
+        return 0;
+    std::string EncodedName = std::string(Name);
+    std::string EncodedTypeString = std::string(typeString);
+
+    // define mapping between typestring and ElementType
+    typedef std::map<std::string, SMDSAbs_ElementType> string_eltype_map;
+    string_eltype_map mapping;
+    mapping["All"] = SMDSAbs_All;
+    mapping["Node"] = SMDSAbs_Node;
+    mapping["Edge"] = SMDSAbs_Edge;
+    mapping["Face"] = SMDSAbs_Face;
+    mapping["Volume"] = SMDSAbs_Volume;
+    mapping["0DElement"] = SMDSAbs_0DElement;
+    mapping["Ball"] = SMDSAbs_Ball;
+
+    int aId;
+    try {
+        // check whether typestring is valid
+        bool typeStringValid = false;
+        for (string_eltype_map::const_iterator it = mapping.begin(); it != mapping.end(); ++it)
+        {
+            std::string key = it->first;
+            if (key == EncodedTypeString)
+                typeStringValid = true;
+        }
+        if (!typeStringValid)
+            throw std::runtime_error("AddGroup: Invalid type string!");
+        // add group to mesh
+        SMESH_Group* group = getFemMeshPtr()->getSMesh()->AddGroup(mapping[EncodedTypeString], EncodedName.c_str(), aId);
+        if (!group)
+            throw std::runtime_error("AddGroup: Failed to create new group.");
+    }
+    catch (Standard_Failure& e) {
+        PyErr_SetString(Base::BaseExceptionFreeCADError, e.GetMessageString());
+        return 0;
+    }
+    std::cout << "Added Group: Name: \'" << EncodedName << "\' Type: \'" << EncodedTypeString << "\' id: " << aId << std::endl;
+
+    Py_Return;
+}
+
+
 PyObject* FemMeshPy::getElementType(PyObject *args)
 {
     int id;
