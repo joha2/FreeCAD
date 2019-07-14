@@ -1087,7 +1087,7 @@ PyObject* FemMeshPy::addGroup(PyObject *args)
 PyObject* FemMeshPy::addGroupElements(PyObject *args)
 {
     int id;
-    // the second object should be a list or iterator
+    // the second object should be a list
     // see https://stackoverflow.com/questions/22458298/extending-python-with-c-pass-a-list-to-pyarg-parsetuple
     PyObject *pList;
     PyObject *pItem;
@@ -1099,15 +1099,18 @@ PyObject* FemMeshPy::addGroupElements(PyObject *args)
         return 0;
     }
 
-    std::set<long> ids;
+    std::set<Py_ssize_t> ids;
     n = PyList_Size(pList);
-    for (long i = 0; i < n; i++) {
+    std::cout << "AddGroupElements: num elements: " << n << " sizeof: " << sizeof(n) << std::endl;
+    for (Py_ssize_t i = 0; i < n; i++) {
         pItem = PyList_GetItem(pList, i);
         if(!PyInt_Check(pItem)) {
             PyErr_SetString(PyExc_TypeError, "AddGroupElements: List items must be integers.");
             return 0;
         }
-        ids.insert(PyInt_AsLong(pItem)); // PyInts are C longs
+        ids.insert(PyInt_AsSsize_t(pItem));
+        // Py_ssize_t transparently handles maximum array lengths on 32bit and 64bit machines
+        // See: https://www.python.org/dev/peps/pep-0353/
     }
 
     // check whether group exists
@@ -1116,23 +1119,23 @@ PyObject* FemMeshPy::addGroupElements(PyObject *args)
         PyErr_SetString(PyExc_ValueError, "AddGroupElements: No group for given id");
         return 0;
     }
-    SMESHDS_Group* groupds = dynamic_cast<SMESHDS_Group*>(group->GetGroupDS());
+    SMESHDS_Group* groupDS = dynamic_cast<SMESHDS_Group*>(group->GetGroupDS());
     // TODO: is this dynamic_cast OK?
 
-    // traverse to full mesh and add elements to group if id is set 'ids' and
-    // if group type is compatible with element
-    SMDSAbs_ElementType aElementType = groupds->GetType();
+    // Traverse the full mesh and add elements to group if id is in set 'ids'
+    // and if group type is compatible with element
+    SMDSAbs_ElementType aElementType = groupDS->GetType();
 
     SMDS_ElemIteratorPtr aElemIter = getFemMeshPtr()->getSMesh()->GetMeshDS()->elementsIterator(aElementType);
     while (aElemIter->more()) {
         const SMDS_MeshElement* aElem = aElemIter->next();
-        std::set<long>::iterator it;
+        std::set<Py_ssize_t>::iterator it;
         it = ids.find(aElem->GetID());
         if (it != ids.end())
         {
             // the element was in the list
-            if (!groupds->Contains(aElem)) // check whether element is already in group
-                groupds->Add(aElem); // if not, add it
+            if (!groupDS->Contains(aElem)) // check whether element is already in group
+                groupDS->Add(aElem); // if not, add it
         }
     }
 
