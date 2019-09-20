@@ -133,7 +133,7 @@ namespace SketcherGui {
 
 
 /* Sketch commands =======================================================*/
-DEF_STD_CMD_A(CmdSketcherNewSketch);
+DEF_STD_CMD_A(CmdSketcherNewSketch)
 
 CmdSketcherNewSketch::CmdSketcherNewSketch()
     :Command("Sketcher_NewSketch")
@@ -232,35 +232,12 @@ void CmdSketcherNewSketch::activated(int iMsg)
         Base::Vector3d p = Dlg.Pos.getPosition();
         Base::Rotation r = Dlg.Pos.getRotation();
 
-        // do the right view direction
-        std::string camstring;
-        switch(Dlg.DirType){
-            case 0:
-                camstring = "#Inventor V2.1 ascii \\n OrthographicCamera {\\n viewportMapping ADJUST_CAMERA \\n position 0 0 87 \\n orientation 0 0 1  0 \\n nearDistance -112.88701 \\n farDistance 287.28702 \\n aspectRatio 1 \\n focalDistance 87 \\n height 143.52005 }";
-                break;
-            case 1:
-                camstring = "#Inventor V2.1 ascii \\n OrthographicCamera {\\n viewportMapping ADJUST_CAMERA \\n position 0 0 -87 \\n orientation -1 0 0  3.1415927 \\n nearDistance -112.88701 \\n farDistance 287.28702 \\n aspectRatio 1 \\n focalDistance 87 \\n height 143.52005 }";
-                break;
-            case 2:
-                camstring = "#Inventor V2.1 ascii \\n OrthographicCamera {\\n viewportMapping ADJUST_CAMERA\\n  position 0 -87 0 \\n  orientation -1 0 0  4.712389\\n  nearDistance -112.88701\\n  farDistance 287.28702\\n  aspectRatio 1\\n  focalDistance 87\\n  height 143.52005\\n\\n}";
-                break;
-            case 3:
-                camstring = "#Inventor V2.1 ascii \\n OrthographicCamera {\\n viewportMapping ADJUST_CAMERA\\n  position 0 87 0 \\n  orientation 0 0.70710683 0.70710683  3.1415927\\n  nearDistance -112.88701\\n  farDistance 287.28702\\n  aspectRatio 1\\n  focalDistance 87\\n  height 143.52005\\n\\n}";
-                break;
-            case 4:
-                camstring = "#Inventor V2.1 ascii \\n OrthographicCamera {\\n viewportMapping ADJUST_CAMERA\\n  position 87 0 0 \\n  orientation 0.57735026 0.57735026 0.57735026  2.0943952 \\n  nearDistance -112.887\\n  farDistance 287.28699\\n  aspectRatio 1\\n  focalDistance 87\\n  height 143.52005\\n\\n}";
-                break;
-            case 5:
-                camstring = "#Inventor V2.1 ascii \\n OrthographicCamera {\\n viewportMapping ADJUST_CAMERA\\n  position -87 0 0 \\n  orientation -0.57735026 0.57735026 0.57735026  4.1887903 \\n  nearDistance -112.887\\n  farDistance 287.28699\\n  aspectRatio 1\\n  focalDistance 87\\n  height 143.52005\\n\\n}";
-                break;
-        }
         std::string FeatName = getUniqueObjectName("Sketch");
 
         openCommand("Create a new Sketch");
         doCommand(Doc,"App.activeDocument().addObject('Sketcher::SketchObject','%s')",FeatName.c_str());
         doCommand(Doc,"App.activeDocument().%s.Placement = App.Placement(App.Vector(%f,%f,%f),App.Rotation(%f,%f,%f,%f))",FeatName.c_str(),p.x,p.y,p.z,r[0],r[1],r[2],r[3]);
         doCommand(Doc,"App.activeDocument().%s.MapMode = \"%s\"",FeatName.c_str(),AttachEngine::getModeName(Attacher::mmDeactivated).c_str());
-        doCommand(Gui,"Gui.activeDocument().activeView().setCamera('%s')",camstring.c_str());
         doCommand(Gui,"Gui.activeDocument().setEdit('%s')",FeatName.c_str());
     }
 
@@ -274,7 +251,7 @@ bool CmdSketcherNewSketch::isActive(void)
         return false;
 }
 
-DEF_STD_CMD_A(CmdSketcherEditSketch);
+DEF_STD_CMD_A(CmdSketcherEditSketch)
 
 CmdSketcherEditSketch::CmdSketcherEditSketch()
     :Command("Sketcher_EditSketch")
@@ -305,7 +282,7 @@ bool CmdSketcherEditSketch::isActive(void)
     return Gui::Selection().countObjectsOfType(Sketcher::SketchObject::getClassTypeId()) == 1;
 }
 
-DEF_STD_CMD_A(CmdSketcherLeaveSketch);
+DEF_STD_CMD_A(CmdSketcherLeaveSketch)
 
 CmdSketcherLeaveSketch::CmdSketcherLeaveSketch()
   : Command("Sketcher_LeaveSketch")
@@ -351,7 +328,7 @@ bool CmdSketcherLeaveSketch::isActive(void)
     return false;
 }
 
-DEF_STD_CMD_A(CmdSketcherReorientSketch);
+DEF_STD_CMD_A(CmdSketcherReorientSketch)
 
 CmdSketcherReorientSketch::CmdSketcherReorientSketch()
     :Command("Sketcher_ReorientSketch")
@@ -423,8 +400,8 @@ void CmdSketcherReorientSketch::activated(int iMsg)
     }
 
     openCommand("Reorient Sketch");
-    doCommand(Doc,"App.ActiveDocument.%s.Placement = App.Placement(App.Vector(%f,%f,%f),App.Rotation(%f,%f,%f,%f))"
-                 ,sketch->getNameInDocument(),p.x,p.y,p.z,r[0],r[1],r[2],r[3]);
+    FCMD_OBJ_CMD2("Placement = App.Placement(App.Vector(%f,%f,%f),App.Rotation(%f,%f,%f,%f))"
+                 ,sketch,p.x,p.y,p.z,r[0],r[1],r[2],r[3]);
     doCommand(Gui,"Gui.ActiveDocument.setEdit('%s')",sketch->getNameInDocument());
 }
 
@@ -434,7 +411,7 @@ bool CmdSketcherReorientSketch::isActive(void)
         (Sketcher::SketchObject::getClassTypeId()) == 1;
 }
 
-DEF_STD_CMD_A(CmdSketcherMapSketch);
+DEF_STD_CMD_A(CmdSketcherMapSketch)
 
 CmdSketcherMapSketch::CmdSketcherMapSketch()
   : Command("Sketcher_MapSketch")
@@ -564,20 +541,19 @@ void CmdSketcherMapSketch::activated(int iMsg)
         }
 
         // * action
-        std::string featName = sketch.getNameInDocument();
         if (bAttach) {
             App::PropertyLinkSubList support;
             Gui::Selection().getAsPropertyLinkSubList(support);
             std::string supportString = support.getPyReprString();
 
             openCommand("Attach Sketch");
-            doCommand(Gui,"App.activeDocument().%s.MapMode = \"%s\"",featName.c_str(),AttachEngine::getModeName(suggMapMode).c_str());
-            doCommand(Gui,"App.activeDocument().%s.Support = %s",featName.c_str(),supportString.c_str());
+            FCMD_OBJ_CMD2("MapMode = \"%s\"",&sketch,AttachEngine::getModeName(suggMapMode).c_str());
+            FCMD_OBJ_CMD2("Support = %s",&sketch,supportString.c_str());
             commitCommand();
         } else {
             openCommand("Detach Sketch");
-            doCommand(Gui,"App.activeDocument().%s.MapMode = \"%s\"",featName.c_str(),AttachEngine::getModeName(suggMapMode).c_str());
-            doCommand(Gui,"App.activeDocument().%s.Support = None",featName.c_str());
+            FCMD_OBJ_CMD2("MapMode = \"%s\"",&sketch,AttachEngine::getModeName(suggMapMode).c_str());
+            FCMD_OBJ_CMD2("Support = None",&sketch);
             commitCommand();
         }
     } catch (ExceptionWrongInput &e) {
@@ -593,7 +569,7 @@ bool CmdSketcherMapSketch::isActive(void)
     return getActiveGuiDocument() != 0;
 }
 
-DEF_STD_CMD_A(CmdSketcherViewSketch);
+DEF_STD_CMD_A(CmdSketcherViewSketch)
 
 CmdSketcherViewSketch::CmdSketcherViewSketch()
   : Command("Sketcher_ViewSketch")
@@ -614,8 +590,8 @@ void CmdSketcherViewSketch::activated(int iMsg)
     Gui::Document *doc = getActiveGuiDocument();
     SketcherGui::ViewProviderSketch* vp = dynamic_cast<SketcherGui::ViewProviderSketch*>(doc->getInEdit());
     if (vp) {
-        doCommand(Gui,"Gui.ActiveDocument.ActiveView.setCameraOrientation(App.ActiveDocument.%s.getGlobalPlacement().Rotation.Q)"
-                     ,vp->getObject()->getNameInDocument());
+        runCommand(Gui,"Gui.ActiveDocument.ActiveView.setCameraOrientation("
+                "App.Placement(Gui.editDocument().EditingTransform).Rotation.Q)");
     }
 }
 
@@ -631,7 +607,7 @@ bool CmdSketcherViewSketch::isActive(void)
     return false;
 }
 
-DEF_STD_CMD_A(CmdSketcherValidateSketch);
+DEF_STD_CMD_A(CmdSketcherValidateSketch)
 
 CmdSketcherValidateSketch::CmdSketcherValidateSketch()
   : Command("Sketcher_ValidateSketch")
@@ -665,7 +641,7 @@ bool CmdSketcherValidateSketch::isActive(void)
     return (hasActiveDocument() && !Gui::Control().activeDialog());
 }
 
-DEF_STD_CMD_A(CmdSketcherMirrorSketch);
+DEF_STD_CMD_A(CmdSketcherMirrorSketch)
 
 CmdSketcherMirrorSketch::CmdSketcherMirrorSketch()
 : Command("Sketcher_MirrorSketch")
@@ -775,7 +751,7 @@ bool CmdSketcherMirrorSketch::isActive(void)
     return (hasActiveDocument() && !Gui::Control().activeDialog());
 }
 
-DEF_STD_CMD_A(CmdSketcherMergeSketches);
+DEF_STD_CMD_A(CmdSketcherMergeSketches)
 
 CmdSketcherMergeSketches::CmdSketcherMergeSketches()
 : Command("Sketcher_MergeSketches")
@@ -855,7 +831,7 @@ bool CmdSketcherMergeSketches::isActive(void)
 // Acknowledgement of idea and original python macro goes to SpritKopf:
 // https://github.com/Spritkopf/freecad-macros/blob/master/clip-sketch/clip_sketch.FCMacro
 // https://forum.freecadweb.org/viewtopic.php?p=231481#p231085
-DEF_STD_CMD_A(CmdSketcherViewSection);
+DEF_STD_CMD_A(CmdSketcherViewSection)
 
 CmdSketcherViewSection::CmdSketcherViewSection()
 : Command("Sketcher_ViewSection")

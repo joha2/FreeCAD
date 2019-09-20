@@ -77,6 +77,11 @@ else(MSVC)
 endif(MSVC)
 
 if (BUILD_QT5)
+
+    if (Qt5WebEngineWidgets_FOUND AND BUILD_WITH_CONDA)
+        add_definitions(-DQTWEBENGINE)
+    endif()
+
     include_directories(
         ${Qt5Core_INCLUDE_DIRS}
         ${Qt5Widgets_INCLUDE_DIRS}
@@ -205,6 +210,9 @@ generate_from_xml(ViewProviderPy)
 generate_from_xml(ViewProviderDocumentObjectPy)
 generate_from_xml(WorkbenchPy)
 generate_from_xml(SelectionObjectPy)
+generate_from_xml(LinkViewPy)
+generate_from_xml(ViewProviderLinkPy)
+generate_from_xml(AxisOriginPy)
 
 generate_from_py(FreeCADGuiInit GuiInitScript.h)
 
@@ -216,6 +224,9 @@ SET(FreeCADGui_XML_SRCS
     WorkbenchPy.xml
     SelectionObjectPy.xml
     DocumentPy.xml
+    LinkViewPy.xml
+    ViewProviderLinkPy.xml
+    AxisOriginPy.xml
 )
 SOURCE_GROUP("XML" FILES ${FreeCADApp_XML_SRCS})
 
@@ -356,6 +367,9 @@ set(Gui_MOC_HDRS
     TaskView/TaskView.h
     DAGView/DAGView.h
     DAGView/DAGModel.h
+    TaskElementColors.h
+    DlgObjectSelection.h
+    DlgAddProperty.h
     ${FreeCADGui_SDK_MOC_HDRS}
 )
 
@@ -428,6 +442,9 @@ SET(Gui_UIC_SRCS
     TextureMapping.ui
     TaskView/TaskAppearance.ui
     TaskView/TaskSelectLinkProperty.ui
+    TaskElementColors.ui
+    DlgObjectSelection.ui
+    DlgAddProperty.ui
 )
 
 SET(Gui_RES_SRCS
@@ -459,6 +476,7 @@ SET(Command_CPP_SRCS
     CommandTest.cpp
     CommandView.cpp
     CommandStructure.cpp
+    CommandLink.cpp
 )
 SET(Command_SRCS
     ${Command_CPP_SRCS}
@@ -500,6 +518,9 @@ SET(Dialog_CPP_SRCS
     DownloadItem.cpp
     DownloadManager.cpp
     DocumentRecovery.cpp
+    TaskElementColors.cpp
+    DlgObjectSelection.cpp
+    DlgAddProperty.cpp
 )
 
 SET(Dialog_HPP_SRCS
@@ -533,6 +554,9 @@ SET(Dialog_HPP_SRCS
     DownloadItem.h
     DownloadManager.h
     DocumentRecovery.h
+    TaskElementColors.h
+    DlgObjectSelection.h
+    DlgAddProperty.h
 )
 
 SET(Dialog_SRCS
@@ -546,6 +570,7 @@ SET(Dialog_SRCS
     DlgAuthorization.ui
     DlgDisplayProperties.ui
     DlgInputDialog.ui
+    DlgAddProperty.ui
     DlgLocationAngle.ui
     DlgLocationPos.ui
     DlgMacroExecute.ui
@@ -568,6 +593,8 @@ SET(Dialog_SRCS
     Placement.ui
     SceneInspector.ui
     TextureMapping.ui
+    TaskElementColors.ui
+    DlgObjectSelection.ui
 )
 SOURCE_GROUP("Dialog" FILES ${Dialog_SRCS})
 
@@ -973,6 +1000,11 @@ SET(Viewprovider_CPP_SRCS
     ViewProviderOrigin.cpp
     ViewProviderMaterialObject.cpp
     ViewProviderTextDocument.cpp
+    ViewProviderLink.cpp
+    LinkViewPyImp.cpp
+    ViewProviderLinkPyImp.cpp
+    AxisOriginPyImp.cpp
+    AxisOrigin.cpp
 )
 SET(Viewprovider_SRCS
     ${Viewprovider_CPP_SRCS}
@@ -1003,6 +1035,8 @@ SET(Viewprovider_SRCS
     ViewProviderOrigin.h
     ViewProviderMaterialObject.h
     ViewProviderTextDocument.h
+    ViewProviderLink.h
+    AxisOrigin.h
 )
 SOURCE_GROUP("View3D\\Viewprovider" FILES ${Viewprovider_SRCS})
 
@@ -1022,6 +1056,7 @@ SET(Inventor_CPP_SRCS
     SoFCOffscreenRenderer.cpp
     SoFCSelection.cpp
     SoFCUnifiedSelection.cpp
+    SoFCSelectionContext.cpp
     SoFCSelectionAction.cpp
     SoFCVectorizeSVGAction.cpp
     SoFCVectorizeU3DAction.cpp
@@ -1047,6 +1082,7 @@ SET(Inventor_SRCS
     SoFCOffscreenRenderer.h
     SoFCSelection.h
     SoFCUnifiedSelection.h
+    SoFCSelectionContext.h
     SoFCSelectionAction.h
     SoFCVectorizeSVGAction.h
     SoFCVectorizeU3DAction.h
@@ -1071,6 +1107,7 @@ SET(Widget_CPP_SRCS
     WidgetFactory.cpp
     Widgets.cpp
     Window.cpp
+    ViewParams.cpp
 )
 SET(Widget_HPP_SRCS
     FileDialog.h
@@ -1085,6 +1122,7 @@ SET(Widget_HPP_SRCS
     WidgetFactory.h
     Widgets.h
     Window.h
+    ViewParams.h
 )
 SET(Widget_SRCS
     ${Widget_CPP_SRCS}
@@ -1095,11 +1133,13 @@ SOURCE_GROUP("Widget" FILES ${Widget_SRCS})
 # The view sources
 SET(View_CPP_SRCS
     MDIView.cpp
+    MDIViewPy.cpp
     GraphvizView.cpp
     ActiveObjectList.cpp
 )
 SET(View_HPP_SRCS
     MDIView.h
+    MDIViewPy.h
     GraphvizView.h
     ActiveObjectList.h
 )
@@ -1285,21 +1325,28 @@ SET_BIN_DIR(FreeCADGui FreeCADGui)
 
 if(WIN32)
     INSTALL(TARGETS FreeCADGui
-        RUNTIME DESTINATION bin
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     )
 else(WIN32)
     INSTALL(TARGETS FreeCADGui
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     )
-    INSTALL(FILES Icons/freecad.xpm
-        Icons/freecad-icon-16.png
-        Icons/freecad-icon-32.png
-        Icons/freecad-icon-48.png
-        Icons/freecad-icon-64.png
-        Icons/freecad.svg
-        Icons/freecad-doc.png
-        DESTINATION ${CMAKE_INSTALL_DATADIR}
-    )
+    #INSTALL(FILES Icons/freecad.xpm
+    #    Icons/freecad-icon-16.png
+    #    Icons/freecad-icon-32.png
+    #    Icons/freecad-icon-48.png
+    #    Icons/freecad-icon-64.png
+    #    Icons/freecad.svg
+    #    Icons/freecad-doc.png
+    #    DESTINATION ${CMAKE_INSTALL_DATADIR}
+    #)
+    INSTALL(FILES Icons/freecad-icon-16.png DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/16x16/apps RENAME freecad.png)
+    INSTALL(FILES Icons/freecad-icon-32.png DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/32x32/apps RENAME freecad.png)
+    INSTALL(FILES Icons/freecad-icon-48.png DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/48x48/apps RENAME freecad.png)
+    INSTALL(FILES Icons/freecad-icon-64.png DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/64x64/apps RENAME freecad.png)
+    INSTALL(FILES Icons/freecad.svg DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps)
+    INSTALL(FILES Icons/freecad.xpm DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pixmaps)
+    INSTALL(FILES Icons/freecad-doc.svg DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/mimetypes RENAME application-x-extension-fcstd.svg)
 endif(WIN32)
 

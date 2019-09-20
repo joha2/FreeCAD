@@ -103,6 +103,7 @@ SET(PathScripts_SRCS
     PathScripts/PathToolControllerGui.py
     PathScripts/PathToolEdit.py
     PathScripts/PathToolLibraryManager.py
+    PathScripts/PathToolLibraryEditor.py
     PathScripts/PathUtil.py
     PathScripts/PathUtils.py
     PathScripts/PathUtilsGui.py
@@ -140,6 +141,7 @@ SET(PathTests_SRCS
     PathTests/TestPathDressupDogbone.py
     PathTests/TestPathDressupHoldingTags.py
     PathTests/TestPathGeom.py
+    PathTests/TestPathHelix.py
     PathTests/TestPathLog.py
     PathTests/TestPathOpTools.py
     PathTests/TestPathPost.py
@@ -153,6 +155,7 @@ SET(PathTests_SRCS
     PathTests/test_centroid_00.ngc
     PathTests/test_geomop.fcstd
     PathTests/test_linuxcnc_00.ngc
+    PathTests/test_holes00.fcstd
 )
 
 SET(PathImages_Ops

@@ -432,7 +432,7 @@ class _CommandWall:
         self.Width = d
         self.tracker.width(d)
         FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Arch").SetFloat("WallWidth",d)
-        
+
 
     def setHeight(self,d):
 
@@ -521,21 +521,29 @@ class _Wall(ArchComponent.Component):
 
     "The Wall object"
 
-    def __init__(self,obj):
+    def __init__(self, obj):
 
-        ArchComponent.Component.__init__(self,obj)
+        ArchComponent.Component.__init__(self, obj)
         self.setProperties(obj)
         obj.IfcType = "Wall"
 
-    def setProperties(self,obj):
+    def setProperties(self, obj):
 
         lp = obj.PropertiesList
         if not "Length" in lp:
             obj.addProperty("App::PropertyLength","Length","Wall",QT_TRANSLATE_NOOP("App::Property","The length of this wall. Not used if this wall is based on an underlying object"))
         if not "Width" in lp:
             obj.addProperty("App::PropertyLength","Width","Wall",QT_TRANSLATE_NOOP("App::Property","The width of this wall. Not used if this wall is based on a face"))
+
+        # To be combined into Width when PropertyLengthList is available
+        if not "OverrideWidth" in lp:
+            obj.addProperty("App::PropertyFloatList","OverrideWidth","Wall",QT_TRANSLATE_NOOP("App::Property","This override Width attribute to set width of each segment of wall (The 1st value override 'Width' attribute for 1st segment of wall; if a value is zero, 1st value of 'OverrideWidth' will be followed)"))			# see DraftGeomUtils.offsetwire()
+
         if not "Height" in lp:
             obj.addProperty("App::PropertyLength","Height","Wall",QT_TRANSLATE_NOOP("App::Property","The height of this wall. Keep 0 for automatic. Not used if this wall is based on a solid"))
+        if not "Area" in lp:
+            obj.addProperty("App::PropertyArea","Area","Wall",QT_TRANSLATE_NOOP("App::Property","The area of this wall as a simple Height * Length calculation"))
+            obj.setEditorMode("Area",1)
         if not "Align" in lp:
             obj.addProperty("App::PropertyEnumeration","Align","Wall",QT_TRANSLATE_NOOP("App::Property","The alignment of this wall on its base object, if applicable"))
             obj.Align = ['Left','Right','Center']
@@ -738,13 +746,14 @@ class _Wall(ArchComponent.Component):
                                 obj.Length = l
                                 self.oldLength = None # delete the stored value to prevent triggering base change below
 
-    def onBeforeChange(self,obj,prop):
+        # set the Area property
+        obj.Area = obj.Length.Value * obj.Height.Value
 
+    def onBeforeChange(self,obj,prop):
         if prop == "Length":
             self.oldLength = obj.Length.Value
 
-    def onChanged(self,obj,prop):
-
+    def onChanged(self, obj, prop):
         if prop == "Length":
             if obj.Base and obj.Length.Value and hasattr(self,"oldLength") and (self.oldLength != None) and (self.oldLength != obj.Length.Value):
                 if obj.Base.isDerivedFrom("Part::Feature"):
@@ -790,7 +799,21 @@ class _Wall(ArchComponent.Component):
                 # multifuses not considered here
                 return data
         length  = obj.Length.Value
-        width = obj.Width.Value
+
+        # TODO currently layers were not supported when len(basewires) > 0
+        width = 0
+        widths = obj.OverrideWidth
+
+        if obj.OverrideWidth:
+            if obj.OverrideWidth[0]:
+                width = obj.OverrideWidth[0]
+        if not width:
+            if obj.Width:
+                width = obj.Width.Value
+            else:
+                print("Width or OverrideWidth[0] should not be 0")
+                return
+
         height = obj.Height.Value
         if not height:
             for p in obj.InList:
@@ -861,12 +884,16 @@ class _Wall(ArchComponent.Component):
                             for c in Part.sortEdges(cluster):
                                 self.basewires.append(Part.Wire(c))
 
-                    if self.basewires and width:
+                    if self.basewires: # and width:				# width already tested earlier...
+
                         if (len(self.basewires) == 1) and layers:
                             self.basewires = [self.basewires[0] for l in layers]
+
                         layeroffset = 0
                         baseface = None
                         for i,wire in enumerate(self.basewires):
+
+                            edgeNum = len(wire.Edges)
                             e = wire.Edges[0]
                             if isinstance(e.Curve,Part.Circle):
                                 dvec = e.Vertexes[0].Point.sub(e.Curve.Center)
@@ -886,7 +913,9 @@ class _Wall(ArchComponent.Component):
                                 if off:
                                     dvec2 = DraftVecUtils.scaleTo(dvec,off)
                                     wire = DraftGeomUtils.offsetWire(wire,dvec2)
-                                w2 = DraftGeomUtils.offsetWire(wire,dvec)
+
+                                w2 = DraftGeomUtils.offsetWire(wire,dvec,False, False, widths)
+
                                 w1 = Part.Wire(Part.__sortEdges__(wire.Edges))
                                 sh = DraftGeomUtils.bind(w1,w2)
                             elif obj.Align == "Right":
@@ -901,7 +930,9 @@ class _Wall(ArchComponent.Component):
                                 if off:
                                     dvec2 = DraftVecUtils.scaleTo(dvec,off)
                                     wire = DraftGeomUtils.offsetWire(wire,dvec2)
-                                w2 = DraftGeomUtils.offsetWire(wire,dvec)
+
+                                w2 = DraftGeomUtils.offsetWire(wire,dvec,False, False, widths)
+
                                 w1 = Part.Wire(Part.__sortEdges__(wire.Edges))
                                 sh = DraftGeomUtils.bind(w1,w2)
                             elif obj.Align == "Center":
@@ -914,11 +945,18 @@ class _Wall(ArchComponent.Component):
                                     d1 = Vector(dvec).multiply(off)
                                     w2 = DraftGeomUtils.offsetWire(wire,d1)
                                 else:
-                                    dvec.multiply(width/2)
-                                    w1 = DraftGeomUtils.offsetWire(wire,dvec)
+                                    dvec.multiply(width/2)			## TODO width Value should be of no use (width/2), width Direction remains 'in use'
+
+                                    overrideWidthHalfen = [i/2 for i in widths]
+
+                                    w1 = DraftGeomUtils.offsetWire(wire,dvec,False, False, overrideWidthHalfen)
                                     dvec = dvec.negative()
-                                    w2 = DraftGeomUtils.offsetWire(wire,dvec)
+                                    w2 = DraftGeomUtils.offsetWire(wire,dvec,False, False, overrideWidthHalfen)
+
                                 sh = DraftGeomUtils.bind(w1,w2)
+
+                            del widths[0:edgeNum]
+
                             if sh:
                                 sh.fix(0.1,0,1) # fixes self-intersecting wires
                                 f = Part.Face(sh)

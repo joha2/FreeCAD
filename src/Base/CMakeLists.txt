@@ -303,6 +303,7 @@ SET(FreeCADBase_HPP_SRCS
     BoundBox.h
     Builder3D.h
     Console.h
+    Converter.h
     CoordinateSystem.h
     Debugger.h
     Exception.h
@@ -328,6 +329,7 @@ SET(FreeCADBase_HPP_SRCS
     Reader.h
     Rotation.h
     Sequencer.h
+    StdStlTools.h
     Stream.h
     Swap.h
     ${SWIG_HEADERS}
@@ -397,7 +399,7 @@ SET_BIN_DIR(FreeCADBase FreeCADBase)
 
 if(WIN32)
     INSTALL(TARGETS FreeCADBase
-        RUNTIME DESTINATION bin
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     )
 else(WIN32)

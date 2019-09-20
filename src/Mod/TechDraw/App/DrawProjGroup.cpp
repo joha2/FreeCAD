@@ -174,7 +174,10 @@ App::DocumentObjectExecReturn *DrawProjGroup::execute(void)
 //    }
 
     for (auto& item: getViewsAsDPGI()) {
+        bool touched = item->isTouched();
         item->autoPosition();
+        if(!touched)
+            item->purgeTouched();
     }
 
     return DrawViewCollection::execute();
@@ -427,7 +430,6 @@ App::DocumentObject * DrawProjGroup::addProjection(const char *viewProjType)
                 Anchor.purgeTouched();
                 view->LockPosition.setValue(true);  //lock "Front" position within DPG (note not Page!).
                 view->LockPosition.setStatus(App::Property::ReadOnly,true); //Front should stay locked.
-                App::GetApplication().signalChangePropertyEditor(view->LockPosition);
                 view->LockPosition.purgeTouched();
                 requestPaint();   //make sure the group object is on the Gui page
             }
@@ -863,7 +865,7 @@ void DrawProjGroup::updateChildren(void)
             Base::Console().Log("PROBLEM - DPG::updateChildren - non DPGI entry in Views! %s\n",
                                     getNameInDocument());
             throw Base::TypeError("Error: projection in DPG list is not a DPGI!");
-        } else {
+        } else  if(view->Scale.getValue()!=Scale.getValue()) {
             view->Scale.setValue(Scale.getValue());
         }
     }
@@ -881,7 +883,7 @@ void DrawProjGroup::updateChildrenSource(void)
             Base::Console().Log("PROBLEM - DPG::updateChildrenSource - non DPGI entry in Views! %s\n",
                                     getNameInDocument());
             throw Base::TypeError("Error: projection in DPG list is not a DPGI!");
-        } else {
+        } else if (view->Source.getValues() != Source.getValues()) {
             view->Source.setValues(Source.getValues());
         }
     }

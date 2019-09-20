@@ -620,7 +620,7 @@ void SmoothPaths(Paths &paths, double stepSize, long pointCount, long iterations
 				points.push_back(pair<size_t /*path index*/, IntPoint>(i, pt));
 				continue;
 			}
-			const auto &back=points.back();
+			const auto back=points.back();
 			const IntPoint & lastPt = back.second;
 
 
@@ -1606,7 +1606,7 @@ double Adaptive2d::CalcCutArea(Clipper &clip, const IntPoint &c1, const IntPoint
 		Perf_CalcCutAreaClip.Start();
 		// old way of calculating cut area based on polygon clipping
 		// used in case when there are multiple intersections of tool with cleared poly (very rare case, but important)
-		// 1. find differene between old and new tool shape
+		// 1. find difference between old and new tool shape
 		Path oldTool;
 		Path newTool;
 		TranslatePath(toolGeometry, oldTool, c1);
@@ -1676,11 +1676,14 @@ std::list<AdaptiveOutput> Adaptive2d::Execute(const DPaths &stockPaths, const DP
 		tolerance = 0.2;
 
 	scaleFactor = RESOLUTION_FACTOR / tolerance;
+	long maxScaleFactor = toolDiameter<1.0 ? 10000: 1000;
+
 	if (stepOverFactor * toolDiameter < 1.0)
 		scaleFactor *= 1.0 / (stepOverFactor * toolDiameter);
-	if (scaleFactor > 1000)
-		scaleFactor = 1000;
 
+
+	if (scaleFactor > maxScaleFactor )
+		scaleFactor = maxScaleFactor;
 	//scaleFactor = round(scaleFactor);
 
 	current_region=0;

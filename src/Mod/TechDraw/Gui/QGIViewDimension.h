@@ -38,7 +38,7 @@ namespace TechDraw {
 class DrawViewDimension;
 }
 
-namespace TechDrawGeometry {
+namespace TechDraw {
 class BaseGeom;
 class AOC;
 }
@@ -48,6 +48,7 @@ namespace TechDrawGui
 class QGIArrow;
 class QGIDimLines;
 class QGIViewDimension;
+class ViewProviderDimension;
 
 class QGIDatumLabel : public QGraphicsObject
 {
@@ -154,7 +155,21 @@ public Q_SLOTS:
     void updateDim(bool obtuse = false);
 
 protected:
+
+    static double getIsoStandardLinePlacement(double labelAngle);
+    static double computeLineAndLabelAngles(Base::Vector2d lineTarget, Base::Vector2d labelCenter,
+                                            double lineLabelDistance, double &lineAngle, double &labelAngle);
+    static bool computeLineRectangleExitPoint(const QRectF &rectangle, Base::Vector2d targetPoint,
+                                              Base::Vector2d &exitPoint);
+
+    Base::Vector2d computeLineOriginPoint(Base::Vector2d lineTarget, double projectedLabelDistance,
+                                          double lineAngle, double labelWidth, double direction) const;
+    Base::Vector2d getIsoJointPoint(Base::Vector2d labelCenter, double width, double dir) const;
+    Base::Vector2d getAsmeJointPoint(Base::Vector2d labelCenter, double width, double dir) const;
+
     void draw() override;
+    void drawRadius(TechDraw::DrawViewDimension *dimension, ViewProviderDimension *viewProvider) const;
+    
     virtual QVariant itemChange( GraphicsItemChange change,
                                  const QVariant &value ) override;
     virtual void setSvgPens(void);
@@ -162,7 +177,7 @@ protected:
     Base::Vector3d findIsoDir(Base::Vector3d ortho);
     Base::Vector3d findIsoExt(Base::Vector3d isoDir);
     QString getPrecision(void);
-
+    
 protected:
     bool hasHover;
     QGIDatumLabel* datumLabel;                                         //dimension text
@@ -176,8 +191,21 @@ protected:
 private:
     static const double TextOffsetFudge;
 
-    double getDefaultTextHorizontalOffset(bool toLeft) const;
+    double getDefaultTextHorizontalOffset(double direction) const;
     double getDefaultTextVerticalOffset() const;
+    double getDefaultReferenceLineOverhang() const;
+    double getDefaultHorizontalLeaderLength() const;
+
+    static bool angleWithinSector(double testAngle, double startAngle, double endAngle, bool clockwise);
+    static double addAngles(double angle1, double angle2);
+
+    static const int INNER_SECTOR      = 0;
+    static const int OUTER_SECTOR      = 1;
+    static const int OPPOSITE_SECTOR   = 2;
+    static const int COMPLEMENT_SECTOR = 3;
+
+    static int classifyPointToArcPosition(double pointDistance, double pointAngle,
+                   double radius, double startAngle, double endAngle, bool clockwise);
 };
 
 } // namespace MDIViewPageGui

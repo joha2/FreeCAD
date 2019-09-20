@@ -50,6 +50,7 @@ public:
     App::PropertyColor        Color;
     App::PropertyString       LineStyle;
     App::PropertyFloat        LineSpacing;
+    App::PropertyBool         OverrideStyle;
 
     /** @name methods override Feature */
     //@{
@@ -63,9 +64,6 @@ public:
     }
 
     virtual short mustExecute() const override;
-
-    void Restore(Base::XMLReader &reader) override;
-
 
 protected:
 /*    virtual void onChanged(const App::Property* prop) override;*/

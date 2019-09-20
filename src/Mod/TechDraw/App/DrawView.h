@@ -38,7 +38,7 @@ namespace TechDraw
 class DrawPage;
 class DrawViewClip;
 class DrawLeaderLine;
-class CosmeticVertex;
+/*class CosmeticVertex;*/
 
 /** Base class of all View Features in the drawing module
  */
@@ -67,7 +67,8 @@ public:
     virtual void onDocumentRestored() override;
     virtual short mustExecute() const override;
     //@}
-    void Restore(Base::XMLReader &reader) override;
+    virtual void handleChangedPropertyType(
+        Base::XMLReader &reader, const char * TypeName, App::Property * prop) override;
 
     bool isInClip();
     DrawViewClip* getClipGroup(void);

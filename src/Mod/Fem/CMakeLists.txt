@@ -20,6 +20,7 @@ endif(BUILD_GUI)
 
 # Python non Gui packages and modules
 SET(FemScripts_SRCS
+    coding_conventions.md
     Init.py
     InitGui.py
     ObjectsFem.py
@@ -131,6 +132,7 @@ SET(FemTests_SRCS
     femtest/__init__.py
     femtest/testccxtools.py
     femtest/testcommon.py
+    femtest/testfemimport.py
     femtest/testmaterial.py
     femtest/testmesh.py
     femtest/testobject.py

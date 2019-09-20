@@ -71,9 +71,9 @@ class _ViewProviderFemResultMechanical:
             guidoc.setEdit(vobj.Object.Name)
         else:
             from PySide.QtGui import QMessageBox
-            message = 'Active Task Dialog found! Please close this one before opening  a new one!'
+            message = "Active Task Dialog found! Please close this one before opening  a new one!"
             QMessageBox.critical(None, "Error in tree view", message)
-            FreeCAD.Console.PrintError(message + '\n')
+            FreeCAD.Console.PrintError(message + "\n")
         return True
 
     def setEdit(self, vobj, mode=0):
@@ -86,10 +86,10 @@ class _ViewProviderFemResultMechanical:
             FreeCADGui.Control.showDialog(taskd)
             return True
         else:
-            error_message = 'FEM: Result object has no appropriate FEM mesh.\n'
+            error_message = "FEM: Result object has no appropriate FEM mesh.\n"
             FreeCAD.Console.PrintError(error_message)
             from PySide import QtGui
-            QtGui.QMessageBox.critical(None, 'No result object', error_message)
+            QtGui.QMessageBox.critical(None, "No result object", error_message)
             return False
 
     def unsetEdit(self, vobj, mode=0):
@@ -117,7 +117,7 @@ class _ViewProviderFemResultMechanical:
 
 
 class _TaskPanelFemResultShow:
-    '''The task panel for the post-processing'''
+    """The task panel for the post-processing"""
 
     def __init__(self, obj):
         self.result_obj = obj
@@ -308,8 +308,12 @@ class _TaskPanelFemResultShow:
             self.restore_initial_result_dialog()
 
     def restore_initial_result_dialog(self):
-        FreeCAD.FEM_dialog = {"results_type": "None", "show_disp": False,
-                              "disp_factor": 0, "disp_factor_max": 100}
+        FreeCAD.FEM_dialog = {
+            "results_type": "None",
+            "show_disp": False,
+            "disp_factor": 0,
+            "disp_factor_max": 100
+        }
         self.reset_mesh_deformation()
         self.reset_mesh_color()
 
@@ -324,50 +328,105 @@ class _TaskPanelFemResultShow:
         self.set_result_stats("mm", 0.0, 0.0, 0.0)
         self.reset_mesh_color()
 
+    # if an analysis has different result types and one has
+    # stress and the other not the restore result dialog
+    # could trigger stress selected for a result object
+    # which has not stress
+    # see https://forum.freecadweb.org/viewtopic.php?f=18&t=39162
+    # check if the results len is not 0 on any selected method
+
     def abs_displacement_selected(self, state):
-        self.result_selected("Uabs", self.result_obj.DisplacementLengths, "mm")
+        if len(self.result_obj.DisplacementLengths) > 0:
+            self.result_selected("Uabs", self.result_obj.DisplacementLengths, "mm")
+        else:
+            self.form.rb_none.setChecked(True)
+            self.none_selected(True)
 
     def x_displacement_selected(self, state):
-        res_disp_u1 = self.get_scalar_disp_list(
-            self.result_obj.DisplacementVectors, 0
-        )
-        self.result_selected("U1", res_disp_u1, "mm")
+        if len(self.result_obj.DisplacementVectors) > 0:
+            res_disp_u1 = self.get_scalar_disp_list(
+                self.result_obj.DisplacementVectors, 0
+            )
+            self.result_selected("U1", res_disp_u1, "mm")
+        else:
+            self.form.rb_none.setChecked(True)
+            self.none_selected(True)
 
     def y_displacement_selected(self, state):
-        res_disp_u2 = self.get_scalar_disp_list(
-            self.result_obj.DisplacementVectors, 1
-        )
-        self.result_selected("U2", res_disp_u2, "mm")
+        if len(self.result_obj.DisplacementVectors) > 0:
+            res_disp_u2 = self.get_scalar_disp_list(
+                self.result_obj.DisplacementVectors, 1
+            )
+            self.result_selected("U2", res_disp_u2, "mm")
+        else:
+            self.form.rb_none.setChecked(True)
+            self.none_selected(True)
 
     def z_displacement_selected(self, state):
-        res_disp_u3 = self.get_scalar_disp_list(
-            self.result_obj.DisplacementVectors, 2
-        )
-        self.result_selected("U3", res_disp_u3, "mm")
+        if len(self.result_obj.DisplacementVectors) > 0:
+            res_disp_u3 = self.get_scalar_disp_list(
+                self.result_obj.DisplacementVectors, 2
+            )
+            self.result_selected("U3", res_disp_u3, "mm")
+        else:
+            self.form.rb_none.setChecked(True)
+            self.none_selected(True)
 
     def vm_stress_selected(self, state):
-        self.result_selected("Sabs", self.result_obj.StressValues, "MPa")
+        if len(self.result_obj.StressValues) > 0:
+            self.result_selected("Sabs", self.result_obj.StressValues, "MPa")
+        else:
+            self.form.rb_none.setChecked(True)
+            self.none_selected(True)
 
     def max_shear_selected(self, state):
-        self.result_selected("MaxShear", self.result_obj.MaxShear, "MPa")
+        if len(self.result_obj.MaxShear) > 0:
+            self.result_selected("MaxShear", self.result_obj.MaxShear, "MPa")
+        else:
+            self.form.rb_none.setChecked(True)
+            self.none_selected(True)
 
     def max_prin_selected(self, state):
-        self.result_selected("MaxPrin", self.result_obj.PrincipalMax, "MPa")
+        if len(self.result_obj.PrincipalMax) > 0:
+            self.result_selected("MaxPrin", self.result_obj.PrincipalMax, "MPa")
+        else:
+            self.form.rb_none.setChecked(True)
+            self.none_selected(True)
 
     def temperature_selected(self, state):
-        self.result_selected("Temp", self.result_obj.Temperature, "K")
+        if len(self.result_obj.Temperature) > 0:
+            self.result_selected("Temp", self.result_obj.Temperature, "K")
+        else:
+            self.form.rb_none.setChecked(True)
+            self.none_selected(True)
 
     def massflowrate_selected(self, state):
-        self.result_selected("MFlow", self.result_obj.MassFlowRate, "kg/s")
+        if len(self.result_obj.MassFlowRate) > 0:
+            self.result_selected("MFlow", self.result_obj.MassFlowRate, "kg/s")
+        else:
+            self.form.rb_none.setChecked(True)
+            self.none_selected(True)
 
     def networkpressure_selected(self, state):
-        self.result_selected("NPress", self.result_obj.NetworkPressure, "MPa")
+        if len(self.result_obj.NetworkPressure) > 0:
+            self.result_selected("NPress", self.result_obj.NetworkPressure, "MPa")
+        else:
+            self.form.rb_none.setChecked(True)
+            self.none_selected(True)
 
     def min_prin_selected(self, state):
-        self.result_selected("MinPrin", self.result_obj.PrincipalMin, "MPa")
+        if len(self.result_obj.PrincipalMin) > 0:
+            self.result_selected("MinPrin", self.result_obj.PrincipalMin, "MPa")
+        else:
+            self.form.rb_none.setChecked(True)
+            self.none_selected(True)
 
     def peeq_selected(self, state):
-        self.result_selected("Peeq", self.result_obj.Peeq, "")
+        if len(self.result_obj.Peeq) > 0:
+            self.result_selected("Peeq", self.result_obj.Peeq, "")
+        else:
+            self.form.rb_none.setChecked(True)
+            self.none_selected(True)
 
     def user_defined_text(self, equation):
         FreeCAD.FEM_dialog["results_type"] = "user"
@@ -406,6 +465,9 @@ class _TaskPanelFemResultShow:
         x = np.array(dispvectors[:, 0])
         y = np.array(dispvectors[:, 1])
         z = np.array(dispvectors[:, 2])
+        s1x, s1y, s1z = np.array([]), np.array([]), np.array([])
+        s2x, s2y, s2z = np.array([]), np.array([]), np.array([])
+        s3x, s3y, s3z = np.array([]), np.array([]), np.array([])
         # If PSxVector is empty all UserDefined equation does not work
         if self.result_obj.PS1Vector:
             ps1vector = np.array(self.result_obj.PS1Vector)
@@ -428,11 +490,12 @@ class _TaskPanelFemResultShow:
         self.restore_result_dialog()
         userdefined_eq = self.form.user_def_eq.toPlainText()  # Get equation to be used
         UserDefinedFormula = eval(userdefined_eq).tolist()
-        self.result_obj.UserDefined = UserDefinedFormula
-        minm = min(UserDefinedFormula)
-        avg = sum(UserDefinedFormula) / len(UserDefinedFormula)
-        maxm = max(UserDefinedFormula)
-        self.update_colors_stats(UserDefinedFormula, "", minm, avg, maxm)
+        if UserDefinedFormula:
+            self.result_obj.UserDefined = UserDefinedFormula
+            minm = min(UserDefinedFormula)
+            avg = sum(UserDefinedFormula) / len(UserDefinedFormula)
+            maxm = max(UserDefinedFormula)
+            self.update_colors_stats(UserDefinedFormula, "", minm, avg, maxm)
 
         # Dummy use of the variables to get around flake8 error
         del x, y, z, T, Von, Peeq, P1, P2, P3
@@ -508,8 +571,8 @@ class _TaskPanelFemResultShow:
         self.form.hsb_displacement_factor.setValue(value)
 
     def disable_empty_result_buttons(self):
-        ''' disable radio buttons if result does not exists in result object'''
-        '''assignments
+        """ disable radio buttons if result does not exists in result object"""
+        """assignments
         DisplacementLengths --> rb_abs_displacement
         DisplacementVectors --> rb_x_displacement, rb_y_displacement, rb_z_displacement
         Temperature         --> rb_temperature
@@ -519,7 +582,7 @@ class _TaskPanelFemResultShow:
         MaxShear            --> rb_max_shear_stress
         MassFlowRate        --> rb_massflowrate
         NetworkPressure     --> rb_networkpressure
-        Peeq                --> rb_peeq'''
+        Peeq                --> rb_peeq"""
         if len(self.result_obj.DisplacementLengths) == 0:
             self.form.rb_abs_displacement.setEnabled(0)
         if len(self.result_obj.DisplacementVectors) == 0:
@@ -552,15 +615,15 @@ class _TaskPanelFemResultShow:
         else:
             if not self.mesh_obj.FemMesh.VolumeCount:
                 error_message = (
-                    'FEM: Graphical bending stress output '
-                    'for beam or shell FEM Meshes not yet supported.\n'
+                    "FEM: Graphical bending stress output "
+                    "for beam or shell FEM Meshes not yet supported.\n"
                 )
                 FreeCAD.Console.PrintError(error_message)
-                QtGui.QMessageBox.critical(None, 'No result object', error_message)
+                QtGui.QMessageBox.critical(None, "No result object", error_message)
             else:
-                error_message = 'FEM: Result node numbers are not equal to FEM Mesh NodeCount.\n'
+                error_message = "FEM: Result node numbers are not equal to FEM Mesh NodeCount.\n"
                 FreeCAD.Console.PrintError(error_message)
-                QtGui.QMessageBox.critical(None, 'No result object', error_message)
+                QtGui.QMessageBox.critical(None, "No result object", error_message)
 
     def reset_mesh_deformation(self):
         self.mesh_obj.ViewObject.applyDisplacement(0.0)
@@ -593,7 +656,7 @@ def hide_parts_constraints():
     hide_constraints = fem_prefs.GetBool("HideConstraint", False)
     if hide_constraints:
         for o in FreeCAD.ActiveDocument.Objects:
-            if o.isDerivedFrom('Fem::FemAnalysis'):
+            if o.isDerivedFrom("Fem::FemAnalysis"):
                 for acnstrmesh in getActiveAnalysis().Group:
                     if "Constraint" in acnstrmesh.TypeId:
                         acnstrmesh.ViewObject.Visibility = False

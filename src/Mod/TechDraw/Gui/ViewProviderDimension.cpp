@@ -1,4 +1,4 @@
-/***************************************************************************
+﻿/***************************************************************************
  *   Copyright (c) 2004 Jürgen Riegel <juergen.riegel@web.de>              *
  *   Copyright (c) 2012 Luke Parry <l.parry@warwick.ac.uk>                 *
  *                                                                         *
@@ -43,6 +43,9 @@
 
 using namespace TechDrawGui;
 
+const char *ViewProviderDimension::StandardAndStyleEnums[]=
+    { "ISO Oriented", "ISO Levelled", "ASME Regular", "ASME Inlined", NULL };
+
 PROPERTY_SOURCE(TechDrawGui::ViewProviderDimension, TechDrawGui::ViewProviderDrawingView)
 
 //**************************************************************************
@@ -79,8 +82,12 @@ ViewProviderDimension::ViewProviderDimension()
     fcColor.setPackedValue(hGrp->GetUnsigned("Color", 0x00000000));
     ADD_PROPERTY_TYPE(Color,(fcColor),group,App::Prop_None,"The color of the Dimension");
 
-    ADD_PROPERTY_TYPE(FlipArrowheads ,(false),group,App::Prop_None,"Reverse the normal direction of arrowheads on dimline");
+    int standardStyle = hGrp->GetInt("StandardAndStyle", STD_STYLE_ISO_ORIENTED);
+    ADD_PROPERTY_TYPE(StandardAndStyle, (standardStyle), group, App::Prop_None, "Specify the standard according to which this dimension is drawn");
+    StandardAndStyle.setEnums(StandardAndStyleEnums);
 
+    ADD_PROPERTY_TYPE(ExtendToCenter, (true),  group, App::Prop_None,"Prolong the leader line right upto the center point");
+    ADD_PROPERTY_TYPE(FlipArrowheads, (false), group, App::Prop_None,"Reverse the normal direction of arrowheads on dimline");
 }
 
 ViewProviderDimension::~ViewProviderDimension()
@@ -131,7 +138,10 @@ void ViewProviderDimension::onChanged(const App::Property* p)
     if ((p == &Font)  ||
         (p == &Fontsize) ||
         (p == &LineWidth) ||
-        (p == &FlipArrowheads)) {
+        (p == &StandardAndStyle) ||
+        (p == &ExtendToCenter) ||
+        (p == &FlipArrowheads))
+ {
         QGIView* qgiv = getQView();
         if (qgiv) {
             qgiv->updateView(true);

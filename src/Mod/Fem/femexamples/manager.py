@@ -25,7 +25,7 @@
 import FreeCAD
 
 
-def run_analysis(doc, base_name, filepath=''):
+def run_analysis(doc, base_name, filepath=""):
 
     from os.path import join, exists
     from os import makedirs
@@ -38,8 +38,8 @@ def run_analysis(doc, base_name, filepath=''):
     # print([obj.Name for obj in doc.Objects])
 
     # filepath
-    if filepath is '':
-        filepath = join(gettmp(), 'FEM_examples')
+    if filepath is "":
+        filepath = join(gettmp(), "FEM_examples")
     if not exists(filepath):
         makedirs(filepath)
 
@@ -47,21 +47,23 @@ def run_analysis(doc, base_name, filepath=''):
     # ATM we only support one solver, search for a frame work solver and run it
     for m in doc.Analysis.Group:
         from femtools.femutils import is_derived_from
-        if is_derived_from(m, "Fem::FemSolverObjectPython") \
-                and m.Proxy.Type is not 'Fem::FemSolverCalculixCcxTools':
+        if (
+            is_derived_from(m, "Fem::FemSolverObjectPython")
+            and m.Proxy.Type is not "Fem::FemSolverCalculixCcxTools"
+        ):
             solver = m
             break
 
     # we need a file name for the besides dir to work
-    save_fc_file = join(filepath, (base_name + '.FCStd'))
+    save_fc_file = join(filepath, (base_name + ".FCStd"))
     FreeCAD.Console.PrintMessage(
-        'Save FreeCAD file for {} analysis to {}\n.'.format(base_name, save_fc_file)
+        "Save FreeCAD file for {} analysis to {}\n.".format(base_name, save_fc_file)
     )
     doc.saveAs(save_fc_file)
 
     # get analysis workig dir
-    from femsolver.run import _getBesideDir as getpath
-    working_dir = getpath(solver)
+    from femtools.femutils import get_beside_dir
+    working_dir = get_beside_dir(solver)
 
     # run analysis
     from femsolver.run import run_fem_solver
@@ -84,9 +86,9 @@ def run_ccx_cantileverfaceload(solver=None, base_name=None):
     doc = setup()
 
     if base_name is None:
-        base_name = 'CantilverFaceLoad'
+        base_name = "CantilverFaceLoad"
         if solver is not None:
-            base_name += ('_' + solver)
+            base_name += "_" + solver
     run_analysis(doc, base_name)
 
     return doc
@@ -98,9 +100,9 @@ def run_ccx_cantilevernodeload(solver=None, base_name=None):
     doc = setup()
 
     if base_name is None:
-        base_name = 'CantileverNodeLoad'
+        base_name = "CantileverNodeLoad"
         if solver is not None:
-            base_name += ('_' + solver)
+            base_name += "_" + solver
     run_analysis(doc, base_name)
 
     return doc
@@ -112,9 +114,9 @@ def run_ccx_cantileverprescribeddisplacement(solver=None, base_name=None):
     doc = setup()
 
     if base_name is None:
-        base_name = 'CantileverPrescribedDisplacement'
+        base_name = "CantileverPrescribedDisplacement"
         if solver is not None:
-            base_name += ('_' + solver)
+            base_name += "_" + solver
     run_analysis(doc, base_name)
 
     return doc
@@ -126,15 +128,15 @@ def run_rcwall2d(solver=None, base_name=None):
     doc = setup()
 
     if base_name is None:
-        base_name = 'RC_FIB_Wall_2D'
+        base_name = "RC_FIB_Wall_2D"
         if solver is not None:
-            base_name += ('_' + solver)
+            base_name += "_" + solver
     run_analysis(doc, base_name)
 
     return doc
 
 
-'''
+"""
 from femexamples.manager import *
 
 run_all()
@@ -143,10 +145,10 @@ doc = run_ccx_cantileverfaceload()
 doc = run_ccx_cantilevernodeload()
 doc = run_ccx_cantileverprescribeddisplacement()
 
-doc = run_ccx_cantilevernodeload('calculix')
-doc = run_ccx_cantilevernodeload('ccxtools')
-doc = run_ccx_cantilevernodeload('z88')
+doc = run_ccx_cantilevernodeload("calculix")
+doc = run_ccx_cantilevernodeload("ccxtools")
+doc = run_ccx_cantilevernodeload("z88")
 
 doc = run_rcwall2d()
 
-'''
+"""

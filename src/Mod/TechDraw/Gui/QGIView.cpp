@@ -82,7 +82,8 @@ QGIView::QGIView()
     :QGraphicsItemGroup(),
      viewObj(nullptr),
      m_locked(false),
-     m_innerView(false)
+     m_innerView(false),
+     m_selectState(0)
 {
     setCacheMode(QGraphicsItem::NoCache);
     setHandlesChildEvents(false);
@@ -108,7 +109,7 @@ QGIView::QGIView()
     m_caption = new QGICaption();
     addToGroup(m_caption);
     m_lock = new QGCustomImage();
-    m_lock->setParentItem(m_label);
+    m_lock->setParentItem(m_border);
     m_lock->load(QString::fromUtf8(":/icons/techdraw-lock.png"));
     QSize sizeLock = m_lock->imageSize();
     m_lockWidth = (double) sizeLock.width();
@@ -215,8 +216,10 @@ QVariant QGIView::itemChange(GraphicsItemChange change, const QVariant &value)
     if (change == ItemSelectedHasChanged && scene()) {
         if(isSelected()) {
             m_colCurrent = getSelectColor();
+            m_selectState = 2;
         } else {
             m_colCurrent = getNormalColor();
+            m_selectState = 0;
         }
         drawBorder();
     }
@@ -257,8 +260,10 @@ void QGIView::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
     // TODO don't like this but only solution at the minute (MLP)
     if (isSelected()) {
         m_colCurrent = getSelectColor();
+        m_selectState = 2;
     } else {
         m_colCurrent = getPreColor();
+        m_selectState = 1;
     }
     drawBorder();
 }
@@ -268,8 +273,10 @@ void QGIView::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
     Q_UNUSED(event);
     if(isSelected()) {
         m_colCurrent = getSelectColor();
+        m_selectState = 1;
     } else {
         m_colCurrent = getNormalColor();
+        m_selectState = 0;
     }
     drawBorder();
 }
@@ -403,14 +410,6 @@ void QGIView::toggleCache(bool state)
     setCacheMode(NoCache);
 }
 
-////this is obs? 
-//void QGIView::toggleBorder(bool state)
-//{
-//    Base::Console().Message("QGIV::toggleBorder(%d)\n",state);
-////    m_borderVisible = state;
-////    QGIView::draw();
-//}
-
 void QGIView::draw()
 {
     if (isVisible()) {
@@ -474,7 +473,7 @@ void QGIView::drawBorder()
     m_label->setFont(m_font);
     QString labelStr = QString::fromUtf8(getViewObject()->Label.getValue());
     m_label->setPlainText(labelStr);
-    QRectF labelArea = m_label->boundingRect();
+    QRectF labelArea = m_label->boundingRect();                //m_label coords
     double labelWidth = m_label->boundingRect().width();
     double labelHeight = (1 - labelCaptionFudge) * m_label->boundingRect().height();
 
@@ -501,8 +500,8 @@ void QGIView::drawBorder()
                               frameWidth,
                               frameHeight);
 
-    double lockX = labelArea.left();
-    double lockY = labelArea.bottom() - (2 * m_lockHeight);
+    double lockX = frameArea.left();
+    double lockY = frameArea.bottom() - m_lockHeight;
     if (feat->isLocked()) {
         m_lock->setZValue(ZVALUE::LOCK);
         m_lock->setPos(lockX,lockY);
@@ -526,6 +525,7 @@ void QGIView::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
     QStyleOptionGraphicsItem myOption(*option);
     myOption.state &= ~QStyle::State_Selected;
 
+//    painter->setPen(Qt::red);
 //    painter->drawRect(boundingRect());          //good for debugging
 
     QGraphicsItemGroup::paint(painter, &myOption, widget);
@@ -542,8 +542,12 @@ QRectF QGIView::customChildrenBoundingRect() const
     int textLeaderItemType = QGraphicsItem::UserType + 233;  // TODO: Magic number warning
     int editablePathItemType = QGraphicsItem::UserType + 301;  // TODO: Magic number warning
     int movableTextItemType = QGraphicsItem::UserType + 300;
+    int weldingSymbolItemType = QGraphicsItem::UserType + 340;
     QRectF result;
     for (QList<QGraphicsItem*>::iterator it = children.begin(); it != children.end(); ++it) {
+        if (!(*it)->isVisible()) {
+            continue;
+        }
         if ( ((*it)->type() != dimItemType) &&
              ((*it)->type() != leaderItemType) &&
              ((*it)->type() != textLeaderItemType) &&
@@ -551,6 +555,7 @@ QRectF QGIView::customChildrenBoundingRect() const
              ((*it)->type() != movableTextItemType) &&
              ((*it)->type() != borderItemType) &&
              ((*it)->type() != labelItemType)  &&
+             ((*it)->type() != weldingSymbolItemType)  &&
              ((*it)->type() != captionItemType) ) {
             QRectF childRect = mapFromItem(*it,(*it)->boundingRect()).boundingRect();
             result = result.united(childRect);
@@ -630,6 +635,7 @@ bool QGIView::getFrameState(void)
     return result;
 }
 
+//TODO: change name to prefNormalColor()
 QColor QGIView::getNormalColor()
 {
     Base::Reference<ParameterGrp> hGrp = getParmGroupCol();

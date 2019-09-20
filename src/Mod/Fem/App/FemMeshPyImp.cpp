@@ -1104,11 +1104,19 @@ PyObject* FemMeshPy::addGroupElements(PyObject *args)
     std::cout << "AddGroupElements: num elements: " << n << " sizeof: " << sizeof(n) << std::endl;
     for (Py_ssize_t i = 0; i < n; i++) {
         pItem = PyList_GetItem(pList, i);
+#if PY_MAJOR_VERSION >= 3
+        if(!PyLong_Check(pItem)) {
+#else
         if(!PyInt_Check(pItem)) {
+#endif
             PyErr_SetString(PyExc_TypeError, "AddGroupElements: List items must be integers.");
             return 0;
         }
+#if PY_MAJOR_VERSION >= 3
+        ids.insert(PyLong_AsSsize_t(pItem));
+#else
         ids.insert(PyInt_AsSsize_t(pItem));
+#endif
         // Py_ssize_t transparently handles maximum array lengths on 32bit and 64bit machines
         // See: https://www.python.org/dev/peps/pep-0353/
     }

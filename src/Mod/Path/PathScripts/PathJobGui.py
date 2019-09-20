@@ -36,7 +36,7 @@ import PathScripts.PathPreferences as PathPreferences
 import PathScripts.PathSetupSheetGui as PathSetupSheetGui
 import PathScripts.PathStock as PathStock
 import PathScripts.PathToolControllerGui as PathToolControllerGui
-import PathScripts.PathToolLibraryManager as PathToolLibraryManager
+import PathScripts.PathToolLibraryEditor as PathToolLibraryEditor
 import PathScripts.PathUtil as PathUtil
 import PathScripts.PathUtils as PathUtils
 import math
@@ -114,13 +114,17 @@ class ViewProvider:
         self.switch = None
         self.taskPanel = None
         self.vobj = None
-        self.baseVisibility = None
-        self.stockVisibility = None
+        self.baseVisibility = {}
+        self.stockVisibility = False
 
     def attach(self, vobj):
         self.vobj = vobj
         self.obj = vobj.Object
         self.taskPanel = None
+        if not hasattr(self, 'baseVisibility'):
+            self.baseVisibility = {}
+        if not hasattr(self, 'stockVisibility'):
+            self.stockVisibility = False
 
         # setup the axis display at the origin
         self.switch = coin.SoSwitch()
@@ -850,7 +854,7 @@ class TaskPanel:
         self.toolControllerSelect()
 
     def toolControllerAdd(self):
-        PathToolLibraryManager.CommandToolLibraryEdit().edit(self.obj, self.updateToolController)
+        PathToolLibraryEditor.CommandToolLibraryEdit().edit(self.obj, self.updateToolController)
 
     def toolControllerDelete(self):
         self.objectDelete(self.form.toolControllerList)

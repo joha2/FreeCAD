@@ -75,6 +75,9 @@
 #include <Mod/TechDraw/App/DrawViewImage.h>
 #include <Mod/TechDraw/App/DrawLeaderLine.h>
 #include <Mod/TechDraw/App/DrawRichAnno.h>
+#include <Mod/TechDraw/App/DrawWeldSymbol.h>
+#include <Mod/TechDraw/App/DrawTile.h>
+#include <Mod/TechDraw/App/DrawTileWeld.h>
 #include <Mod/TechDraw/App/QDomNodeModel.h>
 
 #include "Rez.h"
@@ -96,6 +99,8 @@
 #include "QGIFace.h"
 #include "QGILeaderLine.h"
 #include "QGIRichAnno.h"
+#include "QGIWeldSymbol.h"
+#include "QGITile.h"
 
 #include "ZVALUE.h"
 #include "ViewProviderPage.h"
@@ -111,9 +116,8 @@ QGVPage::QGVPage(ViewProviderPage *vp, QGraphicsScene* s, QWidget *parent)
       pageTemplate(0),
       m_renderer(Native),
       drawBkg(true),
-      m_vpPage(0)
-//      ,
-//      m_borderState(true)
+      m_vpPage(0),
+      panningActive(false)
 {
     assert(vp);
     m_vpPage = vp;
@@ -545,6 +549,36 @@ QGIView * QGVPage::addRichAnno(TechDraw::DrawRichAnno* anno)
     return annoGroup;
 }
 
+QGIView * QGVPage::addWeldSymbol(TechDraw::DrawWeldSymbol* weld)
+{
+//    Base::Console().Message("QGVP::addWeldSymbol()\n");
+    QGIWeldSymbol* weldGroup = nullptr;
+    TechDraw::DrawView*  parentDV = nullptr;
+    
+    App::DocumentObject* parentObj = weld->Leader.getValue();
+    if (parentObj != nullptr) {
+        parentDV  = dynamic_cast<TechDraw::DrawView*>(parentObj);
+    } else {
+//        Base::Console().Message("QGVP::addWeldSymbol - no parent doc obj\n");
+    }
+    if (parentDV != nullptr) {
+        QGIView* parentQV = findQViewForDocObj(parentObj);
+        QGILeaderLine* leadParent = dynamic_cast<QGILeaderLine*>(parentQV);
+        if (leadParent != nullptr) {
+            weldGroup = new QGIWeldSymbol(leadParent);
+            weldGroup->setFeature(weld);       //for QGIWS
+            weldGroup->setViewFeature(weld);   //for QGIV
+            weldGroup->updateView(true);
+        } else {
+            Base::Console().Error("QGVP::addWeldSymbol - no parent QGILL\n");
+        }
+    } else {
+        Base::Console().Error("QGVP::addWeldSymbol - parent is not DV!\n");
+    }
+    return weldGroup;
+}
+
+
 //! find the graphic for a DocumentObject
 QGIView * QGVPage::findQViewForDocObj(App::DocumentObject *obj) const
 {
@@ -705,8 +739,16 @@ void QGVPage::refreshViews(void)
 {
 //    Base::Console().Message("QGVP::refreshViews()\n");
     QList<QGraphicsItem*> list = scene()->items();
-    for (QList<QGraphicsItem*>::iterator it = list.begin(); it != list.end(); ++it) {
-        QGIView *itemView = dynamic_cast<QGIView *>(*it);
+    QList<QGraphicsItem*> qgiv;
+    //find only QGIV's 
+    for (auto q: list) {
+        QString tileFamily = QString::fromUtf8("QGIV");
+        if (tileFamily == q->data(0).toString()) {
+            qgiv.push_back(q);
+        }
+    }
+    for (auto q: qgiv) {
+        QGIView *itemView = dynamic_cast<QGIView *>(q);
         if(itemView) {
             itemView->updateView(true);
         }
@@ -785,7 +827,7 @@ void QGVPage::saveSvg(QString filename)
     double width  =  Rez::guiX(page->getPageWidth());
     double height =  Rez::guiX(page->getPageHeight());
     QRectF sourceRect(0.0,-height,width,height);
-    QRectF targetRect;
+    QRectF targetRect(0.0,0.0,width,height);
 
     Gui::Selection().clearSelection();
     QPainter p;
@@ -1071,12 +1113,33 @@ void QGVPage::leaveEvent(QEvent * event)
 
 void QGVPage::mousePressEvent(QMouseEvent *event)
 {
+    if (event->button() == Qt::MiddleButton) {
+        panOrigin = event->pos();
+        panningActive = true;
+        event->accept();
+
+        QApplication::setOverrideCursor(Qt::ClosedHandCursor);
+    }
+
     QGraphicsView::mousePressEvent(event);
 }
 
 void QGVPage::mouseMoveEvent(QMouseEvent *event)
 {
     balloonCursorPos = event->pos();
+
+    if (panningActive) {
+        QScrollBar *horizontalScrollbar = horizontalScrollBar();
+        QScrollBar *verticalScrollbar = verticalScrollBar();
+        QPoint direction = event->pos() - panOrigin;
+
+        horizontalScrollbar->setValue(horizontalScrollbar->value() - m_reversePan*direction.x());
+        verticalScrollbar->setValue(verticalScrollbar->value() - m_reverseScroll*direction.y());
+
+        panOrigin = event->pos();
+        event->accept();
+    }
+
     QGraphicsView::mouseMoveEvent(event);
 }
 
@@ -1109,6 +1172,11 @@ void QGVPage::mouseReleaseEvent(QMouseEvent *event)
         //Horrible hack to force Tree update
         double x = getDrawPage()->balloonParent->X.getValue();
         getDrawPage()->balloonParent->X.setValue(x);
+    }
+
+    if (event->button()&Qt::MiddleButton) {
+        QApplication::restoreOverrideCursor();
+        panningActive = false;
     }
 
     QGraphicsView::mouseReleaseEvent(event);

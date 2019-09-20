@@ -19,7 +19,9 @@
         <file>icons/Draft_Drawing.svg</file>
         <file>icons/Draft_Edit.svg</file>
         <file>icons/Draft_Finish.svg</file>
+        <file>icons/Draft_Fillet.svg</file>
         <file>icons/Draft_Join.svg</file>
+        <file>icons/Draft_Layer.svg</file>
         <file>icons/Draft_Line.svg</file>
         <file>icons/Draft_Lock.svg</file>
         <file>icons/Draft_Macro.svg</file>
@@ -44,11 +46,13 @@
         <file>icons/Draft_Wipe.svg</file>
         <file>icons/Draft_Draft2Sketch.svg</file>
         <file>icons/Draft_Array.svg</file>
+        <file>icons/Draft_LinkArray.svg</file>
         <file>icons/Draft_Cursor.svg</file>
         <file>icons/Draft_Dot.svg</file>
         <file>icons/Draft_Point.svg</file>
         <file>icons/Draft_Snap.svg</file>
         <file>icons/Draft_PathArray.svg</file>
+        <file>icons/Draft_PathLinkArray.svg</file>
         <file>icons/Draft_PointArray.svg</file>
         <file>icons/Draft_VisGroup.svg</file>
         <file>icons/Snap_Lock.svg</file>
@@ -135,5 +139,6 @@
         <file>ui/preferences-svg.ui</file>
         <file>ui/preferences-oca.ui</file>
         <file>ui/TaskShapeString.ui</file>
+        <file>ui/TaskSelectPlane.ui</file>
     </qresource>
 </RCC> 

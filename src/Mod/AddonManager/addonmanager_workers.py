@@ -35,19 +35,22 @@ import addonmanager_utilities as utils
 from addonmanager_utilities import translate # this needs to be as is for pylupdate
 from addonmanager_macro import Macro
 
+## @package AddonManager_workers
+#  \ingroup ADDONMANAGER
+#  \brief Multithread workers for the addon manager
+
 MACROS_BLACKLIST = ["BOLTS","WorkFeatures","how to install","PartsLibrary","FCGear"]
 OBSOLETE = ["assembly2","drawing_dimensioning","cura_engine"] # These addons will print an additional message informing the user
 NOGIT = False # for debugging purposes, set this to True to always use http downloads
 
 
 
-"Multithread workers for the Addon Manager"
+"""Multithread workers for the Addon Manager"""
 
 
 
 class UpdateWorker(QtCore.QThread):
-
-    "This worker updates the list of available workbenches"
+    """This worker updates the list of available workbenches"""
 
     info_label = QtCore.Signal(str)
     addon_repo = QtCore.Signal(object)
@@ -88,10 +91,11 @@ class UpdateWorker(QtCore.QThread):
             if url:
                 addondir = moddir + os.sep + name
                 #print ("found:",name," at ",url)
-                if not os.path.exists(addondir):
-                    state = 0
-                else:
+                if os.path.exists(addondir) and os.listdir(addondir):
+                    # make sure the folder exists and it contains files!
                     state = 1
+                else:
+                    state = 0
                 repos.append([name,url,state])
         # querying custom addons
         customaddons = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Addons").GetString("CustomRepositories","").split("\n")
@@ -119,8 +123,7 @@ class UpdateWorker(QtCore.QThread):
 
 
 class InfoWorker(QtCore.QThread):
-
-    "This worker retrieves the description text of a workbench"
+    """This worker retrieves the description text of a workbench"""
 
     addon_repos = QtCore.Signal(object)
 
@@ -153,11 +156,11 @@ class InfoWorker(QtCore.QThread):
 
 
 class CheckWBWorker(QtCore.QThread):
-
-    "This worker checks for available updates for all workbenches"
+    """This worker checks for available updates for all workbenches"""
 
     enable = QtCore.Signal(int)
     mark = QtCore.Signal(str)
+    addon_repos = QtCore.Signal(object)
 
     def __init__(self,repos):
 
@@ -207,13 +210,14 @@ class CheckWBWorker(QtCore.QThread):
                         if "git pull" in gitrepo.status():
                             self.mark.emit(repo[0])
                             upds.append(repo[0])
+                self.repos[self.repos.index(repo)][2] = 2 # mark as already installed AND already checked for updates
+        self.addon_repos.emit(self.repos)
         self.enable.emit(len(upds))
         self.stop = True
 
 
 class FillMacroListWorker(QtCore.QThread):
-
-    "This worker opulates the list of macros"
+    """This worker opulates the list of macros"""
 
     add_macro_signal = QtCore.Signal(Macro)
     info_label_signal = QtCore.Signal(str)
@@ -293,8 +297,7 @@ class FillMacroListWorker(QtCore.QThread):
 
 
 class ShowWorker(QtCore.QThread):
-
-    "This worker retrieves info of a given workbench"
+    """This worker retrieves info of a given workbench"""
 
     info_label = QtCore.Signal(str)
     addon_repos = QtCore.Signal(object)
@@ -302,6 +305,8 @@ class ShowWorker(QtCore.QThread):
 
     def __init__(self, repos, idx):
 
+        # repos is a list of [name,url,installbit,descr] lists
+        # installbit: 0 = not installed, 1 = installed, 2 = installed and checked for available updates
         QtCore.QThread.__init__(self)
         self.repos = repos
         self.idx = idx
@@ -387,6 +392,8 @@ class ShowWorker(QtCore.QThread):
                 message = "<strong style=\"background: #B65A00;\">" + translate("AddonsInstaller", "An update is available for this addon.") + "</strong><br>" + desc + '<br/><br/>Addon repository: <a href="' + self.repos[self.idx][1] + '">' + self.repos[self.idx][1] + '</a>'
             else:
                 message = "<strong style=\"background: #00B629;\">" + translate("AddonsInstaller", "This addon is already installed.") + "</strong><br>" + desc + '<br/><br/>Addon repository: <a href="' + self.repos[self.idx][1] + '">' + self.repos[self.idx][1] + '</a>'
+            self.repos[self.idx][2] = 2 # mark as already installed AND already checked for updates
+            self.addon_repos.emit(self.repos)
         else:
             message = desc + '<br/><br/>Addon repository: <a href="' + self.repos[self.idx][1] + '">' + self.repos[self.idx][1] + '</a>'
 
@@ -706,3 +713,36 @@ class InstallWorker(QtCore.QThread):
         if bakdir:
             shutil.rmtree(bakdir)
         return translate("AddonsInstaller", "Successfully installed") + " " + zipurl
+
+
+class CheckSingleWorker(QtCore.QThread):
+
+    """Worker to check for updates for a single addon"""
+
+    updateAvailable = QtCore.Signal(bool)
+
+    def __init__(self, name):
+
+        QtCore.QThread.__init__(self)
+        self.name = name
+
+    def run(self):
+
+        try:
+            import git
+        except:
+            return
+        FreeCAD.Console.PrintLog("Checking for available updates of the "+name+" addon\n")
+        addondir = os.path.join(FreeCAD.getUserAppDataDir(),"Mod",name)
+        if os.path.exists(addondir):
+            if os.path.exists(addondir + os.sep + '.git'):
+                gitrepo = git.Git(addondir)
+                try:
+                    gitrepo.fetch()
+                    if "git pull" in gitrepo.status():
+                        self.updateAvailable.emit(True)
+                        return
+                except:
+                    # can fail for any number of reasons, ex. not being online
+                    pass
+        self.updateAvailable.emit(False)

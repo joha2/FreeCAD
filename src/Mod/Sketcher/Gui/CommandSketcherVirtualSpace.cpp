@@ -87,7 +87,7 @@ void ActivateVirtualSpaceHandler(Gui::Document *doc,DrawSketchHandler *handler)
 }
 
 // Show/Hide B-spline degree
-DEF_STD_CMD_A(CmdSketcherSwitchVirtualSpace);
+DEF_STD_CMD_A(CmdSketcherSwitchVirtualSpace)
 
 CmdSketcherSwitchVirtualSpace::CmdSketcherSwitchVirtualSpace()
 :Command("Sketcher_SwitchVirtualSpace")
@@ -169,9 +169,7 @@ void CmdSketcherSwitchVirtualSpace::activated(int iMsg)
                 int ConstrId = Sketcher::PropertyConstraintList::getIndexFromConstraintName(*it);
                 Gui::Command::openCommand("Update constraint's virtual space");
                 try {
-                    Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.%s.toggleVirtualSpace(%d)",
-                                            Obj->getNameInDocument(),
-                                            ConstrId);
+                    FCMD_OBJ_CMD2("toggleVirtualSpace(%d)", Obj, ConstrId);
                 }
                 catch(const Base::Exception&) {
                     successful--;

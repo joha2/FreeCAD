@@ -59,7 +59,13 @@ generate_from_xml(DrawProjGroupItemPy)
 generate_from_xml(DrawViewAnnotationPy)
 generate_from_xml(DrawLeaderLinePy)
 generate_from_xml(DrawRichAnnoPy)
-
+generate_from_xml(GeomFormatPy)
+generate_from_xml(CenterLinePy)
+generate_from_xml(CosmeticEdgePy)
+generate_from_xml(CosmeticVertexPy)
+generate_from_xml(DrawTilePy)
+generate_from_xml(DrawTileWeldPy)
+generate_from_xml(DrawWeldSymbolPy)
 
 SET(Draw_SRCS
     DrawPage.cpp
@@ -114,6 +120,12 @@ SET(Draw_SRCS
     DrawRichAnno.h
     QDomNodeModel.cpp
     QDomNodeModel.h
+    DrawTile.cpp
+    DrawTile.h
+    DrawTileWeld.cpp
+    DrawTileWeld.h
+    DrawWeldSymbol.cpp
+    DrawWeldSymbol.h
     )
 
 SET(TechDraw_SRCS
@@ -140,6 +152,14 @@ SET(Geometry_SRCS
     GeometryObject.h
     Cosmetic.cpp
     Cosmetic.h
+    PropertyGeomFormatList.cpp
+    PropertyGeomFormatList.h
+    PropertyCenterLineList.cpp
+    PropertyCenterLineList.h
+    PropertyCosmeticEdgeList.cpp
+    PropertyCosmeticEdgeList.h
+    PropertyCosmeticVertexList.cpp
+    PropertyCosmeticVertexList.h
 )
 
 SET(Python_SRCS
@@ -177,6 +197,20 @@ SET(Python_SRCS
     DrawLeaderLinePyImp.cpp
     DrawRichAnnoPy.xml
     DrawRichAnnoPyImp.cpp
+    GeomFormatPy.xml
+    GeomFormatPyImp.cpp
+    CenterLinePy.xml
+    CenterLinePyImp.cpp
+    CosmeticEdgePy.xml
+    CosmeticEdgePyImp.cpp
+    CosmeticVertexPy.xml
+    CosmeticVertexPyImp.cpp
+    DrawTilePy.xml
+    DrawTilePyImp.cpp
+    DrawTileWeldPy.xml
+    DrawTileWeldPyImp.cpp
+    DrawWeldSymbolPy.xml
+    DrawWeldSymbolPyImp.cpp
     )
 
 SOURCE_GROUP("Mod" FILES ${TechDraw_SRCS})
@@ -206,6 +240,13 @@ ADD_CUSTOM_COMMAND(TARGET TechDraw
                    COMMAND ${CMAKE_COMMAND} -E copy_directory
                    ${CMAKE_SOURCE_DIR}/src/Mod/TechDraw/Templates
                    ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/Mod/TechDraw/Templates
+)
+
+ADD_CUSTOM_COMMAND(TARGET TechDraw
+                   POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                   ${CMAKE_SOURCE_DIR}/src/Mod/TechDraw/Symbols
+                   ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_DATADIR}/Mod/TechDraw/Symbols
 )   
 
 SET_BIN_DIR(TechDraw TechDraw /Mod/TechDraw)

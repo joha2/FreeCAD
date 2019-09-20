@@ -31,6 +31,7 @@
 #include "Selection.h"
 #include "ViewProvider.h"
 #include "ViewProviderDocumentObject.h"
+#include "ViewProviderLink.h"
 
 using namespace Gui;
 
@@ -40,7 +41,7 @@ using namespace Gui;
 // Std_Recompute
 //===========================================================================
 
-DEF_STD_CMD(StdCmdFeatRecompute);
+DEF_STD_CMD(StdCmdFeatRecompute)
 
 StdCmdFeatRecompute::StdCmdFeatRecompute()
   :Command("Std_Recompute")
@@ -64,7 +65,7 @@ void StdCmdFeatRecompute::activated(int iMsg)
 // Std_RandomColor
 //===========================================================================
 
-DEF_STD_CMD_A(StdCmdRandomColor);
+DEF_STD_CMD_A(StdCmdRandomColor)
 
 StdCmdRandomColor::StdCmdRandomColor()
   :Command("Std_RandomColor")
@@ -89,11 +90,17 @@ void StdCmdRandomColor::activated(int iMsg)
         float fBlu = (float)rand()/fMax;
 
         ViewProvider* view = Application::Instance->getDocument(it->pDoc)->getViewProvider(it->pObject);
-        App::Property* color = view->getPropertyByName("ShapeColor");
-        if (color && color->getTypeId() == App::PropertyColor::getClassTypeId()) {
+        auto vpLink = dynamic_cast<ViewProviderLink*>(view);
+        if(vpLink) {
+            if(!vpLink->OverrideMaterial.getValue())
+                FCMD_VOBJ_CMD2("OverrideMaterial = True",it->pObject);
+            FCMD_VOBJ_CMD2("ShapeMaterial.DiffuseColor=(%.2f,%.2f,%.2f)", it->pObject, fRed, fGrn, fBlu);
+            continue;
+        }
+        auto color = dynamic_cast<App::PropertyColor*>(view->getPropertyByName("ShapeColor"));
+        if (color) {
             // get the view provider of the selected object and set the shape color
-            doCommand(Gui, "Gui.getDocument(\"%s\").getObject(\"%s\").ShapeColor=(%.2f,%.2f,%.2f)"
-                         , it->DocName, it->FeatName, fRed, fGrn, fBlu);
+            FCMD_VOBJ_CMD2("ShapeColor=(%.2f,%.2f,%.2f)" , it->pObject, fRed, fGrn, fBlu);
         }
     }
 }

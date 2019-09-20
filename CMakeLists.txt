@@ -46,6 +46,14 @@ endif (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 
 # ================================================================================
 
+# Needed for boost1.69
+# Avoid that Python (pyerrors.h) defines snprintf and vsnprintf
+if (MSVC AND NOT MSVC_VERSION VERSION_LESS 1900)
+    add_definitions(-DHAVE_SNPRINTF)
+elseif (MINGW)
+    add_definitions(-DHAVE_SNPRINTF)
+endif()
+
 # Allow developers to use Boost < 1.48
 if (NOT BOOST_MIN_VERSION)
     set(BOOST_MIN_VERSION 1.48)
@@ -136,21 +144,16 @@ endif()
 
 if(WIN32)
     set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install CACHE PATH "Installation root directory")
-else(WIN32)
+    set(CMAKE_INSTALL_BINDIR bin CACHE PATH "Output directory for executables")
+    set(CMAKE_INSTALL_DATADIR data CACHE PATH "Output directory for data and resource files")
+    set(CMAKE_INSTALL_INCLUDEDIR include CACHE PATH "Output directory for header files")
+    set(CMAKE_INSTALL_DOCDIR doc CACHE PATH "Output directory for documentation and license files")
+    # Don't set it without manual adoption of LibDir variable in src/App/FreeCADInit.py
+    set(CMAKE_INSTALL_LIBDIR lib CACHE PATH "Output directory for libraries")
+else()
     set(CMAKE_INSTALL_PREFIX "/usr/lib${LIB_SUFFIX}/freecad" CACHE PATH "Installation root directory")
-endif(WIN32)
-
-set(CMAKE_INSTALL_DATADIR data CACHE PATH "Output directory for data and resource files")
-set(CMAKE_INSTALL_INCLUDEDIR include CACHE PATH "Output directory for header files")
-set(CMAKE_INSTALL_DOCDIR doc CACHE PATH "Output directory for documentation and license files")
-# Don't set it without manual adoption of LibDir variable in src/App/FreeCADInit.py
-set(CMAKE_INSTALL_LIBDIR lib CACHE PATH "Output directory for libraries")
-
-if (NOT WIN32)
-    if(NOT IS_ABSOLUTE ${CMAKE_INSTALL_LIBDIR})
-        set(CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
-    endif(NOT IS_ABSOLUTE ${CMAKE_INSTALL_LIBDIR})
-endif(NOT WIN32)
+    include(GNUInstallDirs)
+endif()
 
 set(PYCXX_INCLUDE_DIR
     "${CMAKE_SOURCE_DIR}/src" CACHE PATH
@@ -164,6 +167,7 @@ set(RESOURCEDIR "${CMAKE_INSTALL_DATADIR}")
 set(DOCDIR "${CMAKE_INSTALL_DOCDIR}")
 
 message(STATUS "prefix: ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "bindir: ${CMAKE_INSTALL_BINDIR}")
 message(STATUS "datadir: ${CMAKE_INSTALL_DATADIR}")
 message(STATUS "docdir: ${CMAKE_INSTALL_DOCDIR}")
 message(STATUS "includedir: ${CMAKE_INSTALL_INCLUDEDIR}")
@@ -413,43 +417,14 @@ REQUIRES_MODS(BUILD_TECHDRAW           BUILD_PART BUILD_SPREADSHEET BUILD_DRAWIN
 if(FREECAD_LIBPACK_USE)
 
     # checking for a unique file in LibPack location to make sure the right version of the LibPack is there
-    find_file(FREECAD_LIBPACK_CHECKFILE6X boost_program_options-vc80-mt-gd.lib ${FREECAD_LIBPACK_DIR}/lib )
-    find_file(FREECAD_LIBPACK_CHECKFILE7X boost_program_options-vc90-mt-gd-1_39.lib ${FREECAD_LIBPACK_DIR}/lib )
-    find_file(FREECAD_LIBPACK_CHECKFILE8X boost_program_options-vc90-mt-gd-1_48.lib ${FREECAD_LIBPACK_DIR}/lib )
-    find_file(FREECAD_LIBPACK_CHECKFILE9X boost_program_options-vc90-mt-gd-1_54.lib ${FREECAD_LIBPACK_DIR}/lib )
-    find_file(FREECAD_LIBPACK_CHECKFILE10X boost_program_options-vc110-mt-1_55.lib ${FREECAD_LIBPACK_DIR}/lib )
-    find_file(FREECAD_LIBPACK_CHECKCUSTOM boost_program_options-vc90-mt-gd-1_41.lib ${FREECAD_LIBPACK_DIR}/lib )
     find_file(FREECAD_LIBPACK_CHECKFILE_CLBUNDLER MANIFEST.db ${FREECAD_LIBPACK_DIR})
 
     # don't show them in the GUI
-    set(FREECAD_LIBPACK_CHECKFILE6X "${FREECAD_LIBPACK_CHECKFILE6X}" CACHE INTERNAL "Find libpack")
-    set(FREECAD_LIBPACK_CHECKFILE7X "${FREECAD_LIBPACK_CHECKFILE7X}" CACHE INTERNAL "Find libpack")
-    set(FREECAD_LIBPACK_CHECKFILE8X "${FREECAD_LIBPACK_CHECKFILE8X}" CACHE INTERNAL "Find libpack")
-    set(FREECAD_LIBPACK_CHECKFILE9X "${FREECAD_LIBPACK_CHECKFILE9X}" CACHE INTERNAL "Find libpack")
-    set(FREECAD_LIBPACK_CHECKFILE10X "${FREECAD_LIBPACK_CHECKFILE10X}" CACHE INTERNAL "Find libpack")
-    set(FREECAD_LIBPACK_CHECKCUSTOM "${FREECAD_LIBPACK_CHECKCUSTOM}" CACHE INTERNAL "Find libpack")
     set(FREECAD_LIBPACK_CHECKFILE_CLBUNDLER "${FREECAD_LIBPACK_CHECKFILE_CLBUNDLER}" CACHE INTERNAL "Find libpack")
 
     if (FREECAD_LIBPACK_CHECKFILE_CLBUNDLER)
         set(FREECAD_LIBPACK_VERSION "CLbundler" CACHE STRING "Displays if the libpack has been found" FORCE)
         include(cMake/UseLibPackCLbundler.cmake)
-    elseif(FREECAD_LIBPACK_CHECKFILE9X)
-        set(FREECAD_LIBPACK_VERSION "9.x" CACHE STRING "Displays if the libpack has been found" FORCE)
-        include(cMake/UseLibPack9x.cmake)
-        set(SWIG_EXECUTABLE ${FREECAD_LIBPACK_DIR}/tools/swigwin-2.0.11/swig.exe CACHE STRING "Swig" FORCE)
-        set(FREECAD_LIBPACK_PYSIDEUIC_REL   "${FREECAD_LIBPACK_DIR}/pyside-tools/Lib/site-packages")
-        file(GLOB FREECAD_LIBPACK_PIVY_COIN "${FREECAD_LIBPACK_DIR}/pivy/*.*")
-        file(GLOB FREECAD_LIBPACK_SHIBOKEN  "${FREECAD_LIBPACK_DIR}/shiboken-1.2.1/lib/site-packages/*.pyd")
-        file(GLOB FREECAD_LIBPACK_PYSIDE    "${FREECAD_LIBPACK_DIR}/pyside/lib/site-packages/PySide/*.py*")
-        file(GLOB_RECURSE FREECAD_LIBPACK_PYSIDEUIC RELATIVE "${FREECAD_LIBPACK_PYSIDEUIC_REL}" "${FREECAD_LIBPACK_PYSIDEUIC_REL}/pysideuic/*.py")
-        file(GLOB FREECAD_LIBPACK_PYTHON    "${FREECAD_LIBPACK_DIR}/bin/*.py*")
-    elseif(FREECAD_LIBPACK_CHECKFILE10X)
-        set(FREECAD_LIBPACK_VERSION "10.x" CACHE STRING "Displays if the libpack has been found" FORCE)
-        include(cMake/UseLibPack10x.cmake)
-        set(SWIG_EXECUTABLE ${FREECAD_LIBPACK_DIR}/tools/swigwin-3.0.2/swig.exe CACHE STRING "Swig" FORCE)
-    elseif(FREECAD_LIBPACK_CHECKCUSTOM)
-        set(FREECAD_LIBPACK_VERSION "Custom" CACHE STRING "Displays if the libpack has been found" FORCE)
-        include(cMake/UseLibPackCustom.cmake)
     else(FREECAD_LIBPACK_CHECKFILE_CLBUNDLER)
         set(FREECAD_LIBPACK_VERSION "NOTFOUND" CACHE STRING "Displays if the libpack has been found" FORCE)
         message(SEND_ERROR  "Could not find libpack in specified location:" ${FREECAD_LIBPACK_DIR})
@@ -1043,7 +1018,12 @@ if(NOT FREECAD_LIBPACK_USE OR FREECAD_LIBPACK_CHECKFILE_CLBUNDLER)
             find_package(PySide REQUIRED HINTS "${PYTHON_LIBRARY_DIR}/cmake")
         endif(DEFINED MACPORTS_PREFIX)
 
+        # Shiboken2Config.cmake may explicitly set CMAKE_BUILD_TYPE to Release which causes
+        # CMake to fail to create Makefiles for a debug build.
+        # So as a workaround we save and restore the value after checking for Shiboken2.
+        set (SAVE_BUILD_TYPE ${CMAKE_BUILD_TYPE})
         find_package(Shiboken2 QUIET)# REQUIRED
+        set (CMAKE_BUILD_TYPE ${SAVE_BUILD_TYPE})
         if (Shiboken2_FOUND)
             # Shiboken2 config file was found but it may use the wrong Python version
             # Try to get the matching config suffix and repeat finding the package
@@ -1196,7 +1176,7 @@ endif(CMAKE_SIZEOF_VOID_P EQUAL 8)
 
 if(MSVC)
     # set default compiler settings
-    set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zm150")
+    set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zm150 /bigobj")
     set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DFC_DEBUG /Zm150 /bigobj")
     # set default libs
     set (CMAKE_C_STANDARD_LIBRARIES "kernel32.lib user32.lib gdi32.lib winspool.lib SHFolder.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib winmm.lib comsupp.lib Ws2_32.lib dbghelp.lib ")
@@ -1210,7 +1190,12 @@ if(MSVC)
         set (CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
     endif(FREECAD_RELEASE_PDB)
     if(FREECAD_RELEASE_SEH)
-        set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /EHa")
+        # remove /EHsc or /EHs flags because they are incompatible with /EHa
+        if (${CMAKE_BUILD_TYPE} MATCHES "Release")
+            string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+            string(REPLACE "/EHs" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+            set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /EHa")
+        endif()
     endif(FREECAD_RELEASE_SEH)
 
     option(FREECAD_USE_MP_COMPILE_FLAG "Add /MP flag to the compiler definitions. Speeds up the compile on multi processor machines" OFF)
@@ -1229,7 +1214,6 @@ if(MSVC)
 else(MSVC)
     set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DFC_DEBUG")
         #message(STATUS "DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
-        message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 endif(MSVC)
 
 if(MINGW)
@@ -1282,6 +1266,9 @@ endif(CMAKE_COMPILER_IS_GNUCXX OR MINGW)
 message(STATUS "\n==============\n"
                "Summary report\n"
                "==============\n")
+if (DEFINED CMAKE_BUILD_TYPE)
+    message(STATUS "Build type:          ${CMAKE_BUILD_TYPE}")
+endif()
 
 # Qt5 needs/sets PYTHON_CONFIG_SUFFIX regarding Shiboken
 message(STATUS "Python:              [${PYTHON_EXECUTABLE}] [${PYTHON_CONFIG_SUFFIX}]")
