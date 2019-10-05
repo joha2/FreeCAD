@@ -95,6 +95,7 @@ recompute path. Also, it enables more complicated dependencies beyond trees.
 #include "Application.h"
 #include "DocumentObject.h"
 #include "MergeDocuments.h"
+#include "ExpressionParser.h"
 #include <App/DocumentPy.h>
 
 #include <Base/Console.h>
@@ -192,7 +193,7 @@ struct DocumentP
         static std::random_device _RD;
         static std::mt19937 _RGEN(_RD());
         static std::uniform_int_distribution<> _RDIST(0,5000);
-        // Set some random offset to reduce likelihood of ID collison when
+        // Set some random offset to reduce likelihood of ID collision when
         // copying shape from other document. It is probably better to randomize
         // on each object ID.
         lastObjectId = _RDIST(_RGEN); 
@@ -3418,6 +3419,7 @@ int Document::_recomputeFeature(DocumentObject* Feat)
     }
     catch(Base::AbortException &e){
         e.ReportException();
+        FC_ERR("Failed to recompute " << Feat->getFullName() << ": " << e.what());
         d->addRecomputeLog("User abort",Feat);
         return -1;
     }
@@ -3428,6 +3430,7 @@ int Document::_recomputeFeature(DocumentObject* Feat)
     }
     catch (Base::Exception &e) {
         e.ReportException();
+        FC_ERR("Failed to recompute " << Feat->getFullName() << ": " << e.what());
         d->addRecomputeLog(e.what(),Feat);
         return 1;
     }
@@ -3449,11 +3452,7 @@ int Document::_recomputeFeature(DocumentObject* Feat)
     }else{
         returnCode->Which = Feat;
         d->addRecomputeLog(returnCode);
-#ifdef FC_DEBUG
         FC_ERR("Failed to recompute " << Feat->getFullName() << ": " << returnCode->Why);
-#else
-        FC_LOG("Failed to recompute " << Feat->getFullName() << ": " << returnCode->Why);
-#endif
         return 1;
     }
     return 0;
@@ -4130,7 +4129,7 @@ DocumentObject* Document::moveObject(DocumentObject* obj, bool recursive)
     if(objs.empty()) 
         return 0;
     // Some object may delete its children if deleted, so we collect the IDs
-    // or all depdending objects for safety reason.
+    // or all depending objects for safety reason.
     std::vector<int> ids;
     ids.reserve(deps.size());
     for(auto o : deps)

@@ -991,7 +991,7 @@ bool Document::save(void)
             if(docs.size()>1) {
                 int ret = QMessageBox::question(getMainWindow(),
                         QObject::tr("Save dependent files"),
-                        QObject::tr("The file contain external depencencies. "
+                        QObject::tr("The file contains external dependencies. "
                         "Do you want to save the dependent files, too?"),
                         QMessageBox::Yes,QMessageBox::No);
                 if (ret != QMessageBox::Yes) {
@@ -1043,6 +1043,7 @@ bool Document::saveAs(void)
         try {
             Gui::WaitCursor wc;
             std::string escapedstr = Base::Tools::escapedUnicodeFromUtf8(fn.toUtf8());
+            escapedstr = Base::Tools::escapeEncodeFilename(escapedstr);
             Command::doCommand(Command::Doc,"App.getDocument(\"%s\").saveAs(u\"%s\")"
                                            , DocName, escapedstr.c_str());
             setModified(false);
@@ -1116,15 +1117,13 @@ bool Document::saveCopy(void)
                                              QString::fromUtf8(getDocument()->FileName.getValue()), 
                                              QObject::tr("%1 document (*.FCStd)").arg(exe));
     if (!fn.isEmpty()) {
-        QFileInfo fi;
-        fi.setFile(fn);
-
         const char * DocName = App::GetApplication().getDocumentName(getDocument());
 
         // save as new file name
         Gui::WaitCursor wc;
+        QString pyfn = Base::Tools::escapeEncodeFilename(fn);
         Command::doCommand(Command::Doc,"App.getDocument(\"%s\").saveCopy(\"%s\")"
-                                       , DocName, (const char*)fn.toUtf8());
+                                       , DocName, (const char*)pyfn.toUtf8());
 
         return true;
     }
@@ -1627,6 +1626,13 @@ Gui::MDIView* Document::cloneView(Gui::MDIView* oldview)
         view3D->setWindowIcon(oldview->windowIcon());
         view3D->resize(oldview->size());
 
+        // FIXME: Add parameter to define behaviour by the calling instance
+        // View provider editing
+        if (d->_editViewProvider) {
+            firstView->getViewer()->resetEditingViewProvider();
+            view3D->getViewer()->setEditingViewProvider(d->_editViewProvider, d->_editMode);
+        }
+
         return view3D;
     }
 
@@ -1787,7 +1793,11 @@ bool Document::canClose (bool checkModify, bool checkLink)
         if (!Gui::Control().isAllowedAlterDocument()) {
             std::string name = Gui::Control().activeDialog()->getDocumentName();
             if (name == this->getDocument()->getName()) {
-                if (this->getInEdit())
+                // getInEdit() only checks if the currently active MDI view is
+                // a 3D view and that it is in edit mode. However, when closing a
+                // document then the edit mode must be reset independent of the
+                // active view.
+                if (d->_editViewProvider)
                     this->_resetEdit();
             }
         }
@@ -2229,4 +2239,3 @@ void Document::slotChangePropertyEditor(const App::Document &doc, const App::Pro
         setModified(true);
     }
 }
-
