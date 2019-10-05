@@ -32,6 +32,7 @@
 #include <list>
 #include <boost/shared_ptr.hpp>
 #include <SMESH_Version.h>
+#include <SMDSAbs_ElementType.hxx>
 
 class SMESH_Gen;
 class SMESH_Mesh;
@@ -130,6 +131,15 @@ public:
     /// Applies a transformation on the real geometric data type
     void transformGeometry(const Base::Matrix4D &rclMat);
     //@}
+
+    /** @name Group management */
+    //@{
+    /// Adds group to mesh
+    int addGroup(const std::string, const std::string);
+    /// Adds elements to group (int due to int used by raw SMESH functions)
+    void addGroupElements(int, std::set<int>);
+    //@}
+
 
     struct FemMeshInfo {
         int numFaces;

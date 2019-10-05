@@ -1047,6 +1047,8 @@ PyObject* FemMeshPy::addGroup(PyObject *args)
     std::string EncodedName = std::string(Name);
     std::string EncodedTypeString = std::string(typeString);
 
+    // C++ code starts here
+
     // define mapping between typestring and ElementType
     typedef std::map<std::string, SMDSAbs_ElementType> string_eltype_map;
     string_eltype_map mapping;
@@ -1075,6 +1077,8 @@ PyObject* FemMeshPy::addGroup(PyObject *args)
         if (!group)
             throw std::runtime_error("AddGroup: Failed to create new group.");
     }
+
+    // C++ code ends here
     catch (Standard_Failure& e) {
         PyErr_SetString(Base::BaseExceptionFreeCADError, e.GetMessageString());
         return 0;
@@ -1121,6 +1125,14 @@ PyObject* FemMeshPy::addGroupElements(PyObject *args)
         // See: https://www.python.org/dev/peps/pep-0353/
     }
 
+    // Downcast Py_ssize_t to int to be compatible with SMESH functions
+    std::set<int> int_ids;
+    for (std::set<Py_ssize_t>::iterator it = ids.begin(); it != ids.end(); ++it)
+        int_ids.insert(Py_SAFE_DOWNCAST(*it, Py_ssize_t, int));
+
+    getFemMeshPtr()->addGroupElements(id, int_ids);
+    // C++ code starts here (warning ids has to be casted to int due to raw SMESH functions)
+    /*
     // check whether group exists
     SMESH_Group* group = getFemMeshPtr()->getSMesh()->GetGroup(id);
     if (!group) {
@@ -1146,6 +1158,8 @@ PyObject* FemMeshPy::addGroupElements(PyObject *args)
                 groupDS->Add(aElem); // if not, add it
         }
     }
+    */
+    // C++ ends here
 
     Py_Return;
 }
