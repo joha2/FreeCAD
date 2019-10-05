@@ -135,7 +135,7 @@ public:
     /** @name Group management */
     //@{
     /// Adds group to mesh
-    int addGroup(const std::string, const std::string);
+    int addGroup(const std::string, const std::string, const int=-1);
     /// Adds elements to group (int due to int used by raw SMESH functions)
     void addGroupElements(int, std::set<int>);
     //@}

@@ -1042,27 +1042,30 @@ PyObject* FemMeshPy::addGroup(PyObject *args)
     // get name and typestring from arguments
     char* Name;
     char* typeString;
-    if (!PyArg_ParseTuple(args, "etet","utf-8", &Name, "utf-8", &typeString))
+    int theId = -1;
+    if (!PyArg_ParseTuple(args, "etet|i","utf-8", &Name, "utf-8", &typeString, &theId))
         return 0;
     std::string EncodedName = std::string(Name);
     std::string EncodedTypeString = std::string(typeString);
 
-    int aId = -1;
+    std::cout << "theId: " << theId << std::endl;
+
+    int retId = -1;
 
     try
     {
-        aId = getFemMeshPtr()->addGroup(EncodedTypeString, EncodedName);
+        retId = getFemMeshPtr()->addGroup(EncodedTypeString, EncodedName, theId);
     }
     catch (Standard_Failure& e) {
         PyErr_SetString(Base::BaseExceptionFreeCADError, e.GetMessageString());
         return 0;
     }
-    std::cout << "Added Group: Name: \'" << EncodedName << "\' Type: \'" << EncodedTypeString << "\' id: " << aId << std::endl;
+    std::cout << "Added Group: Name: \'" << EncodedName << "\' Type: \'" << EncodedTypeString << "\' id: " << retId << std::endl;
 
 #if PY_MAJOR_VERSION >= 3
-    return PyLong_FromLong(aId);
+    return PyLong_FromLong(retId);
 #else
-    return PyInt_FromLong(aId);
+    return PyInt_FromLong(retId);
 #endif
 }
 

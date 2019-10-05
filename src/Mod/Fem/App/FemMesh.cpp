@@ -2054,9 +2054,10 @@ Base::Quantity FemMesh::getVolume(void)const
 
 }
 
-int FemMesh::addGroup(const std::string TypeString, const std::string Name)
+int FemMesh::addGroup(const std::string TypeString, const std::string Name, const int theId)
 {
     // define mapping between typestring and ElementType
+    // TODO: remove code doubling by providing mappings for all FemMesh functions
     typedef std::map<std::string, SMDSAbs_ElementType> string_eltype_map;
     string_eltype_map mapping;
     mapping["All"] = SMDSAbs_All;
@@ -2067,7 +2068,8 @@ int FemMesh::addGroup(const std::string TypeString, const std::string Name)
     mapping["0DElement"] = SMDSAbs_0DElement;
     mapping["Ball"] = SMDSAbs_Ball;
 
-    int aId;
+    int aId = theId;
+    std::cout << "theId C++: " << aId << std::endl;
     // check whether typestring is valid
     bool typeStringValid = false;
     for (string_eltype_map::const_iterator it = mapping.begin(); it != mapping.end(); ++it)
