@@ -1047,10 +1047,12 @@ PyObject* FemMeshPy::addGroup(PyObject *args)
     std::string EncodedName = std::string(Name);
     std::string EncodedTypeString = std::string(typeString);
 
+    int aId = -1;
+
     // C++ code starts here
 
     // define mapping between typestring and ElementType
-    typedef std::map<std::string, SMDSAbs_ElementType> string_eltype_map;
+    /*typedef std::map<std::string, SMDSAbs_ElementType> string_eltype_map;
     string_eltype_map mapping;
     mapping["All"] = SMDSAbs_All;
     mapping["Node"] = SMDSAbs_Node;
@@ -1060,7 +1062,6 @@ PyObject* FemMeshPy::addGroup(PyObject *args)
     mapping["0DElement"] = SMDSAbs_0DElement;
     mapping["Ball"] = SMDSAbs_Ball;
 
-    int aId;
     try {
         // check whether typestring is valid
         bool typeStringValid = false;
@@ -1076,9 +1077,13 @@ PyObject* FemMeshPy::addGroup(PyObject *args)
         SMESH_Group* group = getFemMeshPtr()->getSMesh()->AddGroup(mapping[EncodedTypeString], EncodedName.c_str(), aId);
         if (!group)
             throw std::runtime_error("AddGroup: Failed to create new group.");
-    }
+    }*/
 
     // C++ code ends here
+    try
+    {
+        aId = getFemMeshPtr()->addGroup(EncodedTypeString, EncodedName);
+    }
     catch (Standard_Failure& e) {
         PyErr_SetString(Base::BaseExceptionFreeCADError, e.GetMessageString());
         return 0;
