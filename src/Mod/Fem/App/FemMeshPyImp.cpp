@@ -1049,37 +1049,6 @@ PyObject* FemMeshPy::addGroup(PyObject *args)
 
     int aId = -1;
 
-    // C++ code starts here
-
-    // define mapping between typestring and ElementType
-    /*typedef std::map<std::string, SMDSAbs_ElementType> string_eltype_map;
-    string_eltype_map mapping;
-    mapping["All"] = SMDSAbs_All;
-    mapping["Node"] = SMDSAbs_Node;
-    mapping["Edge"] = SMDSAbs_Edge;
-    mapping["Face"] = SMDSAbs_Face;
-    mapping["Volume"] = SMDSAbs_Volume;
-    mapping["0DElement"] = SMDSAbs_0DElement;
-    mapping["Ball"] = SMDSAbs_Ball;
-
-    try {
-        // check whether typestring is valid
-        bool typeStringValid = false;
-        for (string_eltype_map::const_iterator it = mapping.begin(); it != mapping.end(); ++it)
-        {
-            std::string key = it->first;
-            if (key == EncodedTypeString)
-                typeStringValid = true;
-        }
-        if (!typeStringValid)
-            throw std::runtime_error("AddGroup: Invalid type string! Allowed: All, Node, Edge, Face, Volume, 0DElement, Ball");
-        // add group to mesh
-        SMESH_Group* group = getFemMeshPtr()->getSMesh()->AddGroup(mapping[EncodedTypeString], EncodedName.c_str(), aId);
-        if (!group)
-            throw std::runtime_error("AddGroup: Failed to create new group.");
-    }*/
-
-    // C++ code ends here
     try
     {
         aId = getFemMeshPtr()->addGroup(EncodedTypeString, EncodedName);
@@ -1090,7 +1059,11 @@ PyObject* FemMeshPy::addGroup(PyObject *args)
     }
     std::cout << "Added Group: Name: \'" << EncodedName << "\' Type: \'" << EncodedTypeString << "\' id: " << aId << std::endl;
 
-    Py_Return;
+#if PY_MAJOR_VERSION >= 3
+    return PyLong_FromLong(aId);
+#else
+    return PyInt_FromLong(aId);
+#endif
 }
 
 PyObject* FemMeshPy::addGroupElements(PyObject *args)
@@ -1136,35 +1109,6 @@ PyObject* FemMeshPy::addGroupElements(PyObject *args)
         int_ids.insert(Py_SAFE_DOWNCAST(*it, Py_ssize_t, int));
 
     getFemMeshPtr()->addGroupElements(id, int_ids);
-    // C++ code starts here (warning ids has to be casted to int due to raw SMESH functions)
-    /*
-    // check whether group exists
-    SMESH_Group* group = getFemMeshPtr()->getSMesh()->GetGroup(id);
-    if (!group) {
-        PyErr_SetString(PyExc_ValueError, "AddGroupElements: No group for given id");
-        return 0;
-    }
-    SMESHDS_Group* groupDS = dynamic_cast<SMESHDS_Group*>(group->GetGroupDS());
-    // TODO: is this dynamic_cast OK?
-
-    // Traverse the full mesh and add elements to group if id is in set 'ids'
-    // and if group type is compatible with element
-    SMDSAbs_ElementType aElementType = groupDS->GetType();
-
-    SMDS_ElemIteratorPtr aElemIter = getFemMeshPtr()->getSMesh()->GetMeshDS()->elementsIterator(aElementType);
-    while (aElemIter->more()) {
-        const SMDS_MeshElement* aElem = aElemIter->next();
-        std::set<Py_ssize_t>::iterator it;
-        it = ids.find(aElem->GetID());
-        if (it != ids.end())
-        {
-            // the element was in the list
-            if (!groupDS->Contains(aElem)) // check whether element is already in group
-                groupDS->Add(aElem); // if not, add it
-        }
-    }
-    */
-    // C++ ends here
 
     Py_Return;
 }
