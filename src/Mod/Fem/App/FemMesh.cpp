@@ -2069,7 +2069,7 @@ int FemMesh::addGroup(const std::string TypeString, const std::string Name, cons
     mapping["Ball"] = SMDSAbs_Ball;
 
     int aId = theId;
-    std::cout << "theId C++: " << aId << std::endl;
+
     // check whether typestring is valid
     bool typeStringValid = false;
     for (string_eltype_map::const_iterator it = mapping.begin(); it != mapping.end(); ++it)
@@ -2087,7 +2087,7 @@ int FemMesh::addGroup(const std::string TypeString, const std::string Name, cons
     return aId;
 }
 
-void FemMesh::addGroupElements(int GroupId, std::set<int> ElementIds)
+void FemMesh::addGroupElements(const int GroupId, const std::set<int> ElementIds)
 {
     SMESH_Group* group = this->getSMesh()->GetGroup(GroupId);
     if (!group) {
@@ -2112,5 +2112,10 @@ void FemMesh::addGroupElements(int GroupId, std::set<int> ElementIds)
                 groupDS->Add(aElem); // if not, add it
         }
     }
+}
+
+bool FemMesh::removeGroup(int GroupId)
+{
+    return this->getSMesh()->RemoveGroup(GroupId);
 }
 

@@ -1048,8 +1048,6 @@ PyObject* FemMeshPy::addGroup(PyObject *args)
     std::string EncodedName = std::string(Name);
     std::string EncodedTypeString = std::string(typeString);
 
-    std::cout << "theId: " << theId << std::endl;
-
     int retId = -1;
 
     try
@@ -1111,9 +1109,24 @@ PyObject* FemMeshPy::addGroupElements(PyObject *args)
     for (std::set<Py_ssize_t>::iterator it = ids.begin(); it != ids.end(); ++it)
         int_ids.insert(Py_SAFE_DOWNCAST(*it, Py_ssize_t, int));
 
-    getFemMeshPtr()->addGroupElements(id, int_ids);
+    try
+    {
+        getFemMeshPtr()->addGroupElements(id, int_ids);
+    }
+    catch (Standard_Failure& e) {
+        PyErr_SetString(Base::BaseExceptionFreeCADError, e.GetMessageString());
+        return 0;
+    }
 
     Py_Return;
+}
+
+PyObject* FemMeshPy::removeGroup(PyObject *args)
+{
+    int theId;
+    if (!PyArg_ParseTuple(args, "i", &theId))
+        return 0;
+    return PyBool_FromLong((long)(getFemMeshPtr()->removeGroup(theId)));
 }
 
 

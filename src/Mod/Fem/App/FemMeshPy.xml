@@ -161,9 +161,12 @@
         <Methode Name="addGroup" Const="true">
             <Documentation>
                 <UserDocu>Add a group to mesh with specific name and type
-                    addGroup(name, typestring)
+                    addGroup(name, typestring, [id])
                     name: string
                     typestring: \"All\", \"Node\", \"Edge\", \"Face\", \"Volume\", \"0DElement\", \"Ball\"
+                    id: int
+                    Optional id is used to force specific id for group, but does
+                    not work, yet.
                 </UserDocu>
             </Documentation>
         </Methode>
@@ -174,6 +177,15 @@
                     groupid: int
                     list_of_elements: list of int
                     Notice that the elements have to be in the mesh.
+                </UserDocu>
+            </Documentation>
+        </Methode>
+        <Methode Name="removeGroup" Const="true">
+            <Documentation>
+                <UserDocu>Remove a group with a given group ID
+                    removeGroup(groupid)
+                    groupid: int
+                    Returns boolean.
                 </UserDocu>
             </Documentation>
         </Methode>
