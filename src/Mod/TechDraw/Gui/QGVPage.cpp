@@ -79,6 +79,7 @@
 #include <Mod/TechDraw/App/DrawTile.h>
 #include <Mod/TechDraw/App/DrawTileWeld.h>
 #include <Mod/TechDraw/App/QDomNodeModel.h>
+#include <Mod/TechDraw/App/DrawUtil.h>
 
 #include "Rez.h"
 #include "QGIDrawingTemplate.h"
@@ -780,9 +781,9 @@ void QGVPage::saveSvg(QString filename)
 
     const QString docName( QString::fromUtf8(page->getDocument()->getName()) );
     const QString pageName( QString::fromUtf8(page->getNameInDocument()) );
-    QString svgDescription = tr("Drawing page:") + QString::fromUtf8(" ") +
+    QString svgDescription = QString::fromUtf8("Drawing page: ") +
                              pageName +
-                             tr(" exported from FreeCAD document:") + QString::fromUtf8(" ") +
+                             QString::fromUtf8(" exported from FreeCAD document: ") +
                              docName;
 
     QSvgGenerator svgGen;
@@ -801,7 +802,7 @@ void QGVPage::saveSvg(QString filename)
     // the width and height attributes of the <svg> element."  >> but Inkscape won't read it without size info??
     svgGen.setViewBox(QRect(0, 0, pixelWidth, pixelHeight));
 
-    svgGen.setTitle(QObject::tr("FreeCAD SVG Export"));
+    svgGen.setTitle(QString::fromUtf8("FreeCAD SVG Export"));
     svgGen.setDescription(svgDescription);
 
     Gui::Selection().clearSelection();
@@ -867,29 +868,13 @@ void QGVPage::postProcessXml(QTemporaryFile& temporaryFile, QString fileName, QS
 
     QDomElement exportDocElem = exportDoc.documentElement();          //root <svg>
 
-    QXmlQuery query(QXmlQuery::XQuery10);
-    QDomNodeModel model(query.namePool(), exportDoc);
-    query.setFocus(QXmlItem(model.fromDomNode(exportDocElem)));
-
-    // XPath query to select first <g> node as direct <svg> element descendant
-    query.setQuery(QString::fromUtf8(
-        "declare default element namespace \"" SVG_NS_URI "\"; "
-        "declare namespace freecad=\"" FREECAD_SVG_NS_URI "\"; "
-        "/svg/g[1]"));
-
-    QXmlResultItems queryResult;
-    query.evaluateTo(&queryResult);
-
     // Insert Freecad SVG namespace into namespace declarations
     exportDocElem.setAttribute(QString::fromUtf8("xmlns:freecad"),
                                QString::fromUtf8(FREECAD_SVG_NS_URI));
 
-    // Set the first group's id to page name
-    QDomElement g;
-    if (!queryResult.next().isNull()) {
-        g = model.toDomNode(queryResult.current().toNodeModelIndex()).toElement();
-        g.setAttribute(QString::fromUtf8("id"), pageName);
-    }
+    // Create the root group which will host the drawing group and the template group
+    QDomElement rootGroup = exportDoc.createElement(QString::fromUtf8("g"));
+    rootGroup.setAttribute(QString::fromUtf8("id"), pageName);
 
     // Now insert our template
     QGISVGTemplate *svgTemplate = dynamic_cast<QGISVGTemplate *>(pageTemplate);
@@ -903,32 +888,50 @@ void QGVPage::postProcessXml(QTemporaryFile& temporaryFile, QString fileName, QS
                     QDomElement templateDocElem = templateResultDoc.documentElement();
 
                     // Insert the template into a new group with id set to template name
-                    QDomElement groupWrapper = exportDoc.createElement(QString::fromUtf8("g"));
+                    QDomElement templateGroup = exportDoc.createElement(QString::fromUtf8("g"));
                     Base::FileInfo fi(drawTemplate->Template.getValue());
-                    groupWrapper.setAttribute(QString::fromUtf8("id"),
-                                              QString::fromUtf8(fi.fileName().c_str()));
-                    groupWrapper.setAttribute(QString::fromUtf8("style"),
-                                              QString::fromUtf8("stroke: none;"));
+                    templateGroup.setAttribute(QString::fromUtf8("id"),
+                                               QString::fromUtf8(fi.fileName().c_str()));
+                    templateGroup.setAttribute(QString::fromUtf8("style"),
+                                               QString::fromUtf8("stroke: none;"));
 
                     // Scale the template group correctly
-                    groupWrapper.setAttribute(QString::fromUtf8("transform"),
+                    templateGroup.setAttribute(QString::fromUtf8("transform"),
                         QString().sprintf("scale(%f, %f)", Rez::guiX(1.0), Rez::guiX(1.0)));
 
-                    // Finally, transfer all template document child nodes under the wrapper group
+                    // Finally, transfer all template document child nodes under the template group
                     while (!templateDocElem.firstChild().isNull()) {
-                        groupWrapper.appendChild(templateDocElem.firstChild());
+                        templateGroup.appendChild(templateDocElem.firstChild());
                     }
 
-                    if (!g.isNull()) {
-                        g.insertBefore(groupWrapper, QDomNode());
-                    }
-                    else {
-                        exportDocElem.insertBefore(groupWrapper, QDomNode());
-                    }
+                    rootGroup.appendChild(templateGroup);
                 }
             }
         }
     }
+
+    QXmlQuery query(QXmlQuery::XQuery10);
+    QDomNodeModel model(query.namePool(), exportDoc);
+    query.setFocus(QXmlItem(model.fromDomNode(exportDocElem)));
+
+    // XPath query to select first <g> node as direct <svg> element descendant
+    query.setQuery(QString::fromUtf8(
+        "declare default element namespace \"" SVG_NS_URI "\"; "
+        "declare namespace freecad=\"" FREECAD_SVG_NS_URI "\"; "
+        "/svg/g[1]"));
+
+    QXmlResultItems queryResult;
+    query.evaluateTo(&queryResult);
+
+    // Obtain the drawing group element, move it under root node and set its id to "DrawingContent"
+    QDomElement drawingGroup;
+    if (!queryResult.next().isNull()) {
+        drawingGroup = model.toDomNode(queryResult.current().toNodeModelIndex()).toElement();
+        drawingGroup.setAttribute(QString::fromUtf8("id"), QString::fromUtf8("DrawingContent"));
+        rootGroup.appendChild(drawingGroup);
+    }
+
+    exportDocElem.appendChild(rootGroup);
 
     // As icing on the cake, get rid of the empty <g>'s Qt SVG generator painting inserts.
     // XPath query to select any <g> element anywhere with no child nodes whatsoever
@@ -939,7 +942,7 @@ void QGVPage::postProcessXml(QTemporaryFile& temporaryFile, QString fileName, QS
 
     query.evaluateTo(&queryResult);
     while (!queryResult.next().isNull()) {
-        g = model.toDomNode(queryResult.current().toNodeModelIndex()).toElement();
+        QDomElement g(model.toDomNode(queryResult.current().toNodeModelIndex()).toElement());
         g.parentNode().removeChild(g);
     }
 
@@ -950,6 +953,8 @@ void QGVPage::postProcessXml(QTemporaryFile& temporaryFile, QString fileName, QS
     }
 
     QTextStream stream( &outFile );
+    stream.setGenerateByteOrderMark(true);
+
     stream << exportDoc.toString();
     outFile.close();
 }

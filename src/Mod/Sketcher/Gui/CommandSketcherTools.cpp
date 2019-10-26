@@ -38,7 +38,7 @@
 #include <Gui/Selection.h>
 #include <Gui/Command.h>
 #include <Gui/MainWindow.h>
-#include <Gui/DlgEditFileIncludeProptertyExternal.h>
+#include <Gui/DlgEditFileIncludePropertyExternal.h>
 
 #include <Gui/Action.h>
 #include <Gui/BitmapFactory.h>
@@ -1525,7 +1525,7 @@ bool CmdSketcherMove::isActive(void)
     return isSketcherAcceleratorActive( getActiveGuiDocument(), true );
 }
 
-DEF_STD_CMD_ACL(CmdSketcherCompCopy);
+DEF_STD_CMD_ACL(CmdSketcherCompCopy)
 
 CmdSketcherCompCopy::CmdSketcherCompCopy()
 : Command("Sketcher_CompCopy")

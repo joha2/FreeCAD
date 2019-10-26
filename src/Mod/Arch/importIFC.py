@@ -162,7 +162,8 @@ def getPreferences():
         'CREATE_CLONES': p.GetBool("ifcCreateClones",True),
         'IMPORT_PROPERTIES': p.GetBool("ifcImportProperties",False),
         'SPLIT_LAYERS': p.GetBool("ifcSplitLayers",False),
-        'FITVIEW_ONIMPORT': p.GetBool("ifcFitViewOnImport",False)
+        'FITVIEW_ONIMPORT': p.GetBool("ifcFitViewOnImport",False),
+        'ALLOW_INVALID': p.GetBool("ifcAllowInvalid",False)
     }
 
     if preferences['MERGE_MODE_ARCH'] > 0:
@@ -403,9 +404,9 @@ def insert(filename,docname,skip=[],only=[],root=None,preferences=None):
             shape.importBrepFromString(brep,False)
             shape.scale(1000.0)  # IfcOpenShell always outputs in meters, we convert to mm, the freecad internal unit
 
-            if shape.isNull():
+            if shape.isNull() and (not preferences['ALLOW_INVALID']):
                 if preferences['DEBUG']: print("null shape ",end="")
-            elif not shape.isValid():
+            elif not shape.isValid()  and (not preferences['ALLOW_INVALID']):
                 if preferences['DEBUG']: print("invalid shape ",end="")
             else:
 
@@ -648,6 +649,7 @@ def insert(filename,docname,skip=[],only=[],root=None,preferences=None):
                 for freecadtype,ifctypes in typesmap.items():
                     if ptype in ifctypes:
                         obj = getattr(Arch,"make"+freecadtype)(baseobj=baseobj,name=name)
+                        if preferences['DEBUG']: print(": "+obj.Label+" ",end="")
                         if ptype == "IfcBuildingStorey":
                             if product.Elevation:
                                 obj.Placement.Base.z = product.Elevation * ifcscale
@@ -667,6 +669,13 @@ def insert(filename,docname,skip=[],only=[],root=None,preferences=None):
                     a = obj.IfcData
                     a["IfcUID"] = str(guid)
                     obj.IfcData = a
+            elif pid in additions:
+                # no baseobj but in additions, thus we make a BuildingPart container
+                obj = getattr(Arch,"makeBuildingPart")(name=name)
+                if preferences['DEBUG']: print(": "+obj.Label+" ",end="")
+            else:
+                if preferences['DEBUG']: print(": skipped.")
+                continue
 
         elif (preferences['MERGE_MODE_ARCH'] == 2 and archobj) or (preferences['MERGE_MODE_STRUCT'] == 1 and not archobj):
 
@@ -676,12 +685,20 @@ def insert(filename,docname,skip=[],only=[],root=None,preferences=None):
                 for freecadtype,ifctypes in typesmap.items():
                     if ptype in ifctypes:
                         obj = getattr(Arch,"make"+freecadtype)(baseobj=baseobj,name=name)
+                        if preferences['DEBUG']: print(": "+obj.Label+" ",end="")
                         if ptype == "IfcBuildingStorey":
                             if product.Elevation:
                                 obj.Placement.Base.z = product.Elevation * ifcscale
             elif baseobj:
                 obj = FreeCAD.ActiveDocument.addObject("Part::Feature",name)
                 obj.Shape = shape
+            elif pid in additions:
+                # no baseobj but in additions, thus we make a BuildingPart container
+                obj = getattr(Arch,"makeBuildingPart")(name=name)
+                if preferences['DEBUG']: print(": "+obj.Label+" ",end="")
+            else:
+                if preferences['DEBUG']: print(": skipped.")
+                continue
 
         if preferences['DEBUG']: print("")  # newline for debug prints, print for a new object should be on a new line
 
@@ -947,6 +964,8 @@ def insert(filename,docname,skip=[],only=[],root=None,preferences=None):
 
         for host,children in additions.items():
             if host not in objects.keys():
+                # print(host, 'not used')
+                # print(ifcfile[host])
                 continue
             cobs = []
             for child in children:
@@ -1023,13 +1042,22 @@ def insert(filename,docname,skip=[],only=[],root=None,preferences=None):
                         axes.append(o)
             if axes:
                 name = "Grid"
+                grid_placement = None
                 if annotation.Name:
                     name = annotation.Name
                     if six.PY2:
                         name = name.encode("utf8")
+                if annotation.ObjectPlacement:
+                    # https://forum.freecadweb.org/viewtopic.php?f=39&t=40027
+                    grid_placement = importIFCHelper.getPlacement(
+                        annotation.ObjectPlacement,
+                        scaling=1
+                    )
                 if preferences['PREFIX_NUMBERS']:
                     name = "ID" + str(aid) + " " + name
                 anno = Arch.makeAxisSystem(axes,name)
+                if grid_placement:
+                    anno.Placement = grid_placement
             print(" axis")
         else:
             name = "Annotation"

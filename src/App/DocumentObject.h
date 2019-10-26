@@ -61,7 +61,8 @@ enum ObjectStatus {
     ObjImporting = 13, // Mark the object as importing
     NoTouch = 14, // no touch on any property change
     GeoExcluded = 15, // mark as a member but not claimed by GeoFeatureGroup
-    Expand = 16,
+    Expand = 16, // indicate the object's tree item expansion status
+    NoAutoExpand = 17, // disable tree item auto expand on selection for this object
 };
 
 /** Return object for feature execution
@@ -114,22 +115,15 @@ public:
      * This function is introduced to allow Python feature override its view provider.
      * The default implementation just returns \ref getViewProviderName().
      *
-     * If this method is reimplemented in sub-classes then also reimplement \ref
-     * allowOverrideViewProviderName() accordingly.
+     * The core will only accept the overridden view provider if it returns
+     * true when calling Gui::ViewProviderDocumentObject::allowOverride(obj).
+     * If not, the view provider will be reverted to the one returned from \ref
+     * getViewProviderName().
      */
     virtual const char *getViewProviderNameOverride() const {
         return getViewProviderName();
     }
-    /**
-     * The function indicates whether the object type allows to define a view provider type
-     * different than the standard type. The default implementation returns false.
-     * The function can be overridden by Python feature to return true where the type can be
-     * retrieved from its proxy object.
-     * \sa getViewProviderNameOverride()
-     */
-    virtual bool allowOverrideViewProviderName() const {
-        return false;
-    }
+
     /// Constructor
     DocumentObject(void);
     virtual ~DocumentObject();
@@ -463,13 +457,13 @@ public:
     /** Resolve a link reference that is relative to this object reference
      *
      * @param subname: on input, this is the subname reference to the object
-     * that is to be assigned a link. On output, the reference may be offsetted
-     * to be rid off any common parent.
+     * that is to be assigned a link. On output, the reference may be offset
+     * to be rid of any common parent.
      * @param link: on input, this is the top parent of the link reference. On
      * output, it may be altered to one of its child to be rid off any common
      * parent.
      * @param linkSub: on input, this the subname of the link reference. On
-     * output, it may be offsetted to be rid off any common parent.
+     * output, it may be offset to be rid off any common parent.
      *
      * @return The corrected top parent of the object that is to be assigned the
      * link. If the output 'subname' is empty, then return the object itself.

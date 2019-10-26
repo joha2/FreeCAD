@@ -1263,7 +1263,14 @@ int Document::getTransactionID(bool undo, unsigned pos) const {
 bool Document::isTransactionEmpty() const
 {
     if (d->activeUndoTransaction) {
-        return d->activeUndoTransaction->isEmpty();
+        // Transactions are now only created when there are actual changes.
+        // Empty transaction is now significant for marking external changes. It
+        // is used to match ID with transactions in external documents and
+        // trigger undo/redo there.
+
+        // return d->activeUndoTransaction->isEmpty();
+
+        return false;
     }
 
     return true;
@@ -1522,27 +1529,27 @@ Document::Document(const char *name)
             licenseUrl = "http://en.wikipedia.org/wiki/All_rights_reserved";
             break;
         case 1:
-            license = "CreativeCommons Attribution";
+            license = "Creative Commons Attribution";
             licenseUrl = "http://creativecommons.org/licenses/by/4.0/";
             break;
         case 2:
-            license = "CreativeCommons Attribution-ShareAlike";
+            license = "Creative Commons Attribution-ShareAlike";
             licenseUrl = "http://creativecommons.org/licenses/by-sa/4.0/";
             break;
         case 3:
-            license = "CreativeCommons Attribution-NoDerivatives";
+            license = "Creative Commons Attribution-NoDerivatives";
             licenseUrl = "http://creativecommons.org/licenses/by-nd/4.0/";
             break;
         case 4:
-            license = "CreativeCommons Attribution-NonCommercial";
+            license = "Creative Commons Attribution-NonCommercial";
             licenseUrl = "http://creativecommons.org/licenses/by-nc/4.0/";
             break;
         case 5:
-            license = "CreativeCommons Attribution-NonCommercial-ShareAlike";
+            license = "Creative Commons Attribution-NonCommercial-ShareAlike";
             licenseUrl = "http://creativecommons.org/licenses/by-nc-sa/4.0/";
             break;
         case 6:
-            license = "CreativeCommons Attribution-NonCommercial-NoDerivatives";
+            license = "Creative Commons Attribution-NonCommercial-NoDerivatives";
             licenseUrl = "http://creativecommons.org/licenses/by-nc-nd/4.0/";
             break;
         case 7:
@@ -3540,17 +3547,8 @@ DocumentObject * Document::addObject(const char* sType, const char* pObjectName,
 
     pcObject->setStatus(ObjectStatus::PartialObject, isPartial);
 
-    // If an object does not allow to override its view provider then ignore any
-    // input of the Document.xml or from Python as this information could be wrong.
-    // In this case the default type from getViewProviderName() is used.
-    if (pcObject->allowOverrideViewProviderName()) {
-        if (!viewType || viewType[0] == '\0') {
-            viewType = pcObject->getViewProviderNameOverride();
-        }
-    }
-    else {
-        viewType = pcObject->getViewProviderName();
-    }
+    if (!viewType || viewType[0] == '\0')
+        viewType = pcObject->getViewProviderNameOverride();
 
     if (viewType && viewType[0] != '\0')
         pcObject->_pcViewProviderName = viewType;
@@ -3644,16 +3642,8 @@ std::vector<DocumentObject *> Document::addObjects(const char* sType, const std:
         // mark the object as new (i.e. set status bit 2) and send the signal
         pcObject->setStatus(ObjectStatus::New, true);
 
-        // If an object does not allow to override its view provider then use
-        // getViewProviderName() instead.
-        if (pcObject->allowOverrideViewProviderName()) {
-            const char *viewType = pcObject->getViewProviderNameOverride();
-            pcObject->_pcViewProviderName = viewType ? viewType : "";
-        }
-        else {
-            const char *viewType = pcObject->getViewProviderName();
-            pcObject->_pcViewProviderName = viewType ? viewType : "";
-        }
+        const char *viewType = pcObject->getViewProviderNameOverride();
+        pcObject->_pcViewProviderName = viewType ? viewType : "";
 
         signalNewObject(*pcObject);
 
@@ -3711,16 +3701,8 @@ void Document::addObject(DocumentObject* pcObject, const char* pObjectName)
     // mark the object as new (i.e. set status bit 2) and send the signal
     pcObject->setStatus(ObjectStatus::New, true);
 
-    // If an object does not allow to override its view provider then use
-    // getViewProviderName() instead.
-    if (pcObject->allowOverrideViewProviderName()) {
-        const char *viewType = pcObject->getViewProviderNameOverride();
-        pcObject->_pcViewProviderName = viewType ? viewType : "";
-    }
-    else {
-        const char *viewType = pcObject->getViewProviderName();
-        pcObject->_pcViewProviderName = viewType ? viewType : "";
-    }
+    const char *viewType = pcObject->getViewProviderNameOverride();
+    pcObject->_pcViewProviderName = viewType ? viewType : "";
 
     signalNewObject(*pcObject);
 
@@ -3751,16 +3733,8 @@ void Document::_addObject(DocumentObject* pcObject, const char* pObjectName)
             d->activeUndoTransaction->addObjectDel(pcObject);
     }
 
-    // If an object does not allow to override its view provider then use
-    // getViewProviderName() instead.
-    if (pcObject->allowOverrideViewProviderName()) {
-        const char *viewType = pcObject->getViewProviderNameOverride();
-        pcObject->_pcViewProviderName = viewType ? viewType : "";
-    }
-    else {
-        const char *viewType = pcObject->getViewProviderName();
-        pcObject->_pcViewProviderName = viewType ? viewType : "";
-    }
+    const char *viewType = pcObject->getViewProviderNameOverride();
+    pcObject->_pcViewProviderName = viewType ? viewType : "";
 
     // send the signal
     signalNewObject(*pcObject);
@@ -3784,7 +3758,7 @@ void Document::removeObject(const char* sName)
         return;
 
     if (pos->second->testStatus(ObjectStatus::PendingRecompute)) {
-        // TODO: shall we allow removal if there is active udno transaction?
+        // TODO: shall we allow removal if there is active undo transaction?
         FC_LOG("pending remove of " << sName << " after recomputing document " << getName());
         pos->second->setStatus(ObjectStatus::PendingRemove,true);
         return;

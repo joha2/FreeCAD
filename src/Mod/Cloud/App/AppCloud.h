@@ -24,7 +24,7 @@
 #include <Base/Reader.h>
 #include <Base/Base64.h>
 #include <Base/TimeInfo.h>
-#include <xlocale>
+#include <xlocale.h>
 
 #include <App/PropertyContainer.h>
 #include <App/PropertyStandard.h>
@@ -46,6 +46,20 @@ XERCES_CPP_NAMESPACE_BEGIN
 XERCES_CPP_NAMESPACE_END
 
 namespace Cloud {
+
+struct AmzData {
+	std::string digest;
+	char dateFormatted[256];
+	char ContentType[256];
+	char Host[256];
+	char *MD5;
+};
+
+void eraseSubStr(std::string & Str, const std::string & toErase);
+size_t CurlWrite_CallbackFunc_StdString(void *contents, size_t size, size_t nmemb, std::string *s);
+struct AmzData *ComputeDigestAmzS3v2(char *operation, char *data_type, const char *target, const char *Secret, const char *ptr, long size);
+struct curl_slist *BuildHeaderAmzS3v2(const char *Url, const char *TcpPort, const char *PublicKey, struct AmzData *Data);
+char *MD5Sum(const char *ptr, long size);
 
 class CloudAppExport CloudReader
 {
@@ -139,14 +153,20 @@ PyObject* initModule()
 class CloudAppExport CloudWriter : public Base::Writer
 {
 public:
+    int print=0;
+    char errorCode[1024]="";
     CloudWriter(const char* Url, const char* AccessKey, const char* SecretKey, const char* TcpPort, const char* Bucket);
     virtual ~CloudWriter();
     void pushCloud(const char *FileName, const char *data, long size);
     void putNextEntry(const char* file);
+    void createBucket();
     virtual void writeFiles(void);
 
     virtual std::ostream &Stream(void){return FileStream;}
     virtual bool shouldWrite(const std::string& name, const Base::Persistence *Object) const;
+    void checkText(XERCES_CPP_NAMESPACE_QUALIFIER DOMText* text);
+    void checkXML(XERCES_CPP_NAMESPACE_QUALIFIER DOMNode* node);
+    void checkElement(XERCES_CPP_NAMESPACE_QUALIFIER DOMElement* element);
 
 protected:
     std::string FileName;

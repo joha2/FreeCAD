@@ -334,6 +334,9 @@ class BuildingPart(ArchIFC.IfcProduct):
         pl = obj.PropertiesList
         if not "Height" in pl:
             obj.addProperty("App::PropertyLength","Height","BuildingPart",QT_TRANSLATE_NOOP("App::Property","The height of this object"))
+        if not "HeightPropagate" in pl:
+            obj.addProperty("App::PropertyBool","HeightPropagate","Children",QT_TRANSLATE_NOOP("App::Property","If true, the height value propagates to contained objects"))
+            obj.HeightPropagate = True
         if not "LevelOffset" in pl:
             obj.addProperty("App::PropertyLength","LevelOffset","BuildingPart",QT_TRANSLATE_NOOP("App::Property","The level of the (0,0,0) point of this level"))
         if not "Area" in pl:
@@ -376,12 +379,8 @@ class BuildingPart(ArchIFC.IfcProduct):
             self.svgcache = None
             self.shapecache = None
 
-        if (prop == "Height") and obj.Height.Value:
-            for child in obj.Group:
-                if Draft.getType(child) in ["Wall","Structure"]:
-                    if not child.Height.Value:
-                        print("Executing ",child.Label)
-                        child.Proxy.execute(child)
+        if (prop == "Height" or prop == "HeightPropagate") and obj.Height.Value:
+            self.touchChildren(obj)
 
         elif prop == "Placement":
             if hasattr(self,"oldPlacement"):
@@ -461,6 +460,17 @@ class BuildingPart(ArchIFC.IfcProduct):
                     g.append(o)
         return g
 
+    def touchChildren(self,obj):
+        
+        "Touches all descendents where applicable"
+
+        for child in obj.Group:
+            if Draft.getType(child) in ["Wall","Structure"]:
+                if not child.Height.Value:
+                    print("Executing ",child.Label)
+                    child.Proxy.execute(child)
+            elif Draft.getType(child) in ["Group","BuildingPart"]:
+                self.touchChildren(child)
 
 
 class ViewProviderBuildingPart:

@@ -93,22 +93,22 @@ enum RefType{
 
 DrawViewDimension::DrawViewDimension(void)
 {
-    ADD_PROPERTY_TYPE(References2D,(0,0),"",(App::PropertyType)(App::Prop_None),"Projected Geometry References");
+    ADD_PROPERTY_TYPE(References2D,(0,0),"",(App::Prop_None),"Projected Geometry References");
     References2D.setScope(App::LinkScope::Global);
-    ADD_PROPERTY_TYPE(References3D,(0,0),"",(App::PropertyType)(App::Prop_None),"3D Geometry References");
+    ADD_PROPERTY_TYPE(References3D,(0,0),"",(App::Prop_None),"3D Geometry References");
     References3D.setScope(App::LinkScope::Global);
 
-    ADD_PROPERTY_TYPE(FormatSpec,("") , "Format",(App::PropertyType)(App::Prop_None),"Dimension Format");
-    ADD_PROPERTY_TYPE(Arbitrary,(false) ,"Format",(App::PropertyType)(App::Prop_None),"Value overridden by user");
+    ADD_PROPERTY_TYPE(FormatSpec,("") , "Format", App::Prop_Output,"Dimension Format");
+    ADD_PROPERTY_TYPE(Arbitrary,(false) ,"Format", App::Prop_Output,"Value overridden by user");
 
     Type.setEnums(TypeEnums);                                          //dimension type: length, radius etc
     ADD_PROPERTY(Type,((long)0));
     MeasureType.setEnums(MeasureTypeEnums);
     ADD_PROPERTY(MeasureType, ((long)1));                             //Projected (or True) measurement
-    ADD_PROPERTY_TYPE(TheoreticalExact,(false),"",(App::PropertyType)(App::Prop_None),"Set for theoretical exact (basic) dimension");
-    ADD_PROPERTY_TYPE(OverTolerance ,(0.0),"",App::Prop_None,"+ Tolerance value");
-    ADD_PROPERTY_TYPE(UnderTolerance ,(0.0),"",App::Prop_None,"- Tolerance value");
-    ADD_PROPERTY_TYPE(Inverted,(false),"",(App::PropertyType)(App::Prop_None),"The dimensional value is displayed inverted");
+    ADD_PROPERTY_TYPE(TheoreticalExact,(false),"", App::Prop_Output,"Set for theoretical exact (basic) dimension");
+    ADD_PROPERTY_TYPE(OverTolerance ,(0.0),"", App::Prop_Output,"+ Tolerance value");
+    ADD_PROPERTY_TYPE(UnderTolerance ,(0.0),"", App::Prop_Output,"- Tolerance value");
+    ADD_PROPERTY_TYPE(Inverted,(false),"", App::Prop_Output,"The dimensional value is displayed inverted");
 
     //hide the properties the user can't edit in the property editor
 //    References2D.setStatus(App::Property::Hidden,true);
@@ -160,19 +160,25 @@ void DrawViewDimension::onChanged(const App::Property* prop)
                 Base::Console().Warning("%s has no 3D References but is Type: True\n", getNameInDocument());
                 MeasureType.setValue("Projected");
             }
-        }
-        if (prop == &References3D) {                                       //have to rebuild the Measurement object
+        } else if (prop == &References3D) {   //have to rebuild the Measurement object
             clear3DMeasurements();                                                             //Measurement object
             if (!(References3D.getValues()).empty()) {
                 setAll3DMeasurement();
             } else {
-                if (MeasureType.isValue("True")) {                                 //empty 3dRefs, but True
-                    MeasureType.touch();                                          //run MeasureType logic for this case
+                if (MeasureType.isValue("True")) {             //empty 3dRefs, but True
+                    MeasureType.touch();                       //run MeasureType logic for this case
                 }
             }
-        }
-        if (prop == &Type) {
+        } else if (prop == &Type) {                                    //why??
             FormatSpec.setValue(getDefaultFormatSpec().c_str());
+        } else if ( (prop == &FormatSpec) ||
+             (prop == &Arbitrary) ||
+             (prop == &MeasureType) ||
+             (prop == &TheoreticalExact) ||
+             (prop == &OverTolerance) ||
+             (prop == &UnderTolerance) ||
+             (prop == &Inverted) ) {
+//            nothing in particular
         }
     }
 
@@ -191,18 +197,15 @@ short DrawViewDimension::mustExecute() const
 {
     bool result = 0;
     if (!isRestoring()) {
-        result =  (References2D.isTouched() ||
+        result = (References2D.isTouched() ||
                   Type.isTouched() ||
                   FormatSpec.isTouched() ||
-                  MeasureType.isTouched());
-    }
-    if (result) {
-        return result;
-    }
-    
-    auto dvp = getViewPart();
-    if (dvp != nullptr) {
-        result = dvp->isTouched();
+                  Arbitrary.isTouched() ||
+                  MeasureType.isTouched() ||
+                  TheoreticalExact.isTouched() ||
+                  OverTolerance.isTouched() ||
+                  UnderTolerance.isTouched() ||
+                  Inverted.isTouched() );
     }
     if (result) {
         return result;
@@ -512,7 +515,7 @@ App::DocumentObjectExecReturn *DrawViewDimension::execute(void)
     return DrawView::execute();
 }
 
-std::string  DrawViewDimension::getFormatedValue()
+std::string  DrawViewDimension::getFormatedValue(int partial)
 {
 //    Base::Console().Message("DVD::getFormatedValue()\n");
     std::string result;
@@ -521,8 +524,13 @@ std::string  DrawViewDimension::getFormatedValue()
     }
 
     QString specStr = QString::fromUtf8(FormatSpec.getStrValue().data(),FormatSpec.getStrValue().size());
+    QString specStrCopy = specStr;
+    QString formatPrefix;
+    QString formatSuffix;
     double val = getDimValue();
-    
+    QString specVal;
+    QString userUnits;
+
     bool angularMeasure = false;
     Base::Quantity qVal;
     qVal.setValue(val);
@@ -534,11 +542,11 @@ std::string  DrawViewDimension::getFormatedValue()
         qVal.setUnit(Base::Unit::Length);
     }
 
-    QString userStr = qVal.getUserString();                           // this handles mm to inch/km/parsec etc
-                                                                      // and decimal positions but won't give more than
-                                                                      // Global_Decimals precision
-                                                                      // really should be able to ask units for value
-                                                                      // in appropriate UoM!!
+    QString userStr = qVal.getUserString();            // this handles mm to inch/km/parsec etc
+                                                       // and decimal positions but won't give more than
+                                                       // Global_Decimals precision
+                                                       // really should be able to ask units for value
+                                                       // in appropriate UoM!!
 
     //units api: get schema to figure out if this is multi-value schema(Imperial1, ImperialBuilding, etc)
     //if it is multi-unit schema, don't even try to use Alt Decimals or format per format spec
@@ -575,7 +583,7 @@ std::string  DrawViewDimension::getFormatedValue()
         QLocale loc;
         double userValNum = loc.toDouble(userVal);
 
-        QString userUnits;
+//        QString userUnits;
         int pos = 0;
         if ((pos = rxUnits.indexIn(userStr, 0)) != -1)  {
             userUnits = rxUnits.cap(0);                                       //entire capture - non numerics at end of userString
@@ -584,7 +592,8 @@ std::string  DrawViewDimension::getFormatedValue()
         //find the %x.y tag in FormatSpec
         QRegExp rxFormat(QString::fromUtf8("%[0-9]*\\.*[0-9]*[aefgAEFG]"));     //printf double format spec 
         QString match;
-        QString specVal = userVal;                                             //sensible default
+//        QString specVal = userVal;                                             //sensible default
+        specVal = userVal;                                             //sensible default
         pos = 0;
         if ((pos = rxFormat.indexIn(specStr, 0)) != -1)  {
             match = rxFormat.cap(0);                                          //entire capture of rx
@@ -594,8 +603,11 @@ std::string  DrawViewDimension::getFormatedValue()
             QString qs2;
             specVal = qs2.sprintf(Base::Tools::toStdString(match).c_str(),userValNum);
     #endif
+        formatPrefix = specStrCopy.left(pos);
+        formatSuffix = specStrCopy.right(specStrCopy.size() - pos - match.size());
         } else {       //printf format not found!
-            Base::Console().Warning("Warning - no numeric format in formatSpec - %s\n",getNameInDocument());
+            Base::Console().Warning("Warning - no numeric format in formatSpec %s - %s\n",
+                                    qPrintable(specStr), getNameInDocument());
             return Base::Tools::toStdString(specStr);
         }
 
@@ -627,7 +639,31 @@ std::string  DrawViewDimension::getFormatedValue()
         }
     }
 
-    return specStr.toUtf8().constData();
+    //specVal - qstring with formatted numeric value
+    //userUnits - qstring with unit abbrev
+    //specStr  - number + units
+    //partial = 0 --> the whole dimension string number + units )the "user string"
+    std::string ssPrefix = Base::Tools::toStdString(formatPrefix);
+    std::string ssSuffix = Base::Tools::toStdString(formatSuffix);
+    result = specStr.toUtf8().constData();
+    if (partial == 1)  {                            //just the number (+prefix & suffix)
+//        result = Base::Tools::toStdString(specVal);
+        result = ssPrefix +
+                 Base::Tools::toStdString(specVal) +
+                 ssSuffix;
+    } else if (partial == 2) {                       //just the unit
+        if (showUnits()) {
+            if ((Type.isValue("Angle")) || (Type.isValue("Angle3Pt"))) {
+                QRegExp space(QString::fromUtf8("\\s"));
+                userUnits.remove(space);
+            }
+            result = Base::Tools::toStdString(userUnits);
+        } else {
+            result = "";
+        }
+    }
+
+    return result;
 }
 
 //!NOTE: this returns the Dimension value in internal units (ie mm)!!!!

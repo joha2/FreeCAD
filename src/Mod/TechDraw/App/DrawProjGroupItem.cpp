@@ -102,6 +102,7 @@ void DrawProjGroupItem::onChanged(const App::Property *prop)
 bool DrawProjGroupItem::isLocked(void) const
 {
     bool isLocked = DrawView::isLocked();
+
     if (isAnchor()) {                             //Anchor view is always locked to DPG
         return true;
     }
@@ -112,26 +113,40 @@ bool DrawProjGroupItem::isLocked(void) const
     return isLocked;
 }
 
+bool DrawProjGroupItem::showLock(void) const
+{
+    bool result = DrawView::showLock();
+    DrawProjGroup* parent = getPGroup();
+    bool parentLock = false;
+    if (parent != nullptr) {
+        parentLock = parent->LockPosition.getValue();
+    }
+
+    if (isAnchor() &&                         //don't show lock for Front if DPG is not locked
+        !parentLock) { 
+        result = false;
+    }   
+
+    return result;
+}
+
+
 App::DocumentObjectExecReturn *DrawProjGroupItem::execute(void)
 {
+//    Base::Console().Message("DPGI::execute(%s)\n",Label.getValue());
     if (DrawUtil::checkParallel(Direction.getValue(),
                                 RotationVector.getValue())) {
         return new App::DocumentObjectExecReturn("DPGI: Direction and RotationVector are parallel");
     }
 
-    App::DocumentObjectExecReturn * ret = DrawViewPart::execute();
-    if (ret != nullptr) {
-        return ret;
-    } else {
-        autoPosition();
-        delete ret;
-    }
-    return App::DocumentObject::StdReturn;
+    App::DocumentObjectExecReturn* ret = DrawViewPart::execute();
+    autoPosition();
+    return ret;
 }
 
 void DrawProjGroupItem::autoPosition()
 {
-//    Base::Console().Message("DPGI::autoPosition(%s)\n",getNameInDocument());
+//    Base::Console().Message("DPGI::autoPosition(%s)\n",Label.getValue());
     auto pgroup = getPGroup();
     Base::Vector3d newPos;
     if (pgroup != nullptr) {
