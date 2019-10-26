@@ -529,3 +529,149 @@ class TestMeshEleTetra10(unittest.TestCase):
     ):
         # clearance, is executed after every test
         FreeCAD.closeDocument(self.doc_name)
+
+
+# ************************************************************************************************
+# ************************************************************************************************
+class TestMeshGroups(unittest.TestCase):
+    fcc_print("import TestMeshGroups")
+
+    # ********************************************************************************************
+    def setUp(
+        self
+    ):
+        # setUp is executed before every test
+        # setting up a document to hold the tests
+
+        self.doc_name = self.__class__.__name__
+        if FreeCAD.ActiveDocument:
+            if FreeCAD.ActiveDocument.Name != self.doc_name:
+                FreeCAD.newDocument(self.doc_name)
+        else:
+            FreeCAD.newDocument(self.doc_name)
+        FreeCAD.setActiveDocument(self.doc_name)
+        self.active_doc = FreeCAD.ActiveDocument
+
+    def test_add_groups(self):
+        """
+        Create different groups with different names. Check whether the
+        ids are correct, the names are correct, and whether the GroupCount is
+        correct.
+        """
+
+        from femexamples.meshes.mesh_canticcx_tetra10 import (create_nodes,
+                                                              create_elements)
+        import Fem
+
+        fm = Fem.FemMesh()
+        control = create_nodes(fm)
+        if not control:
+            print("failed to create nodes")
+        control = create_elements(fm)
+        if not control:
+            print("failed to create elements")
+
+        # information
+        print(fm)
+
+        expected_dict = {}
+        expected_dict["ids"] = []
+        expected_dict["names"] = ["MyNodeGroup", "MyEdgeGroup",
+                                  "MyVolumeGroup", "My0DElementGroup",
+                                  "MyBallGroup"]
+        expected_dict["types"] = ["Node", "Edge", "Volume", "0DElement",
+                                  "Ball"]
+        expected_dict["count"] = fm.GroupCount + 5
+        result_dict = {}
+
+
+        mygrpids = []
+        for (name, typ) in zip(expected_dict["names"], expected_dict["types"]):
+            mygrpids.append(fm.addGroup(name, typ))
+
+        expected_dict["ids"] = sorted(tuple(mygrpids))
+
+        print("expected dict")
+        print(expected_dict)
+
+        result_dict["count"] = fm.GroupCount
+        result_dict["ids"] = sorted(fm.Groups)
+        result_dict["types"] = list([fm.getGroupElementType(g)
+                                     for g in fm.Groups])
+        result_dict["names"] = list([fm.getGroupName(g) for g in fm.Groups])
+
+        print("result dict")
+        print(result_dict)
+
+        self.assertEqual(expected_dict, result_dict,
+                         msg="expected: {0}\n\nresult: {1}\n\n differ".format(
+                             expected_dict, result_dict))
+
+    def test_delete_groups(self):
+        """
+        Adds a number of groups to FemMesh and deletes them
+        afterwards. Checks whether GroupCount is OK
+        """
+        from femexamples.meshes.mesh_canticcx_tetra10 import (create_nodes,
+                                                              create_elements)
+        import Fem
+
+        fm = Fem.FemMesh()
+        control = create_nodes(fm)
+        if not control:
+            print("failed to create nodes")
+        control = create_elements(fm)
+        if not control:
+            print("failed to create elements")
+
+        # information
+        print(fm)
+        old_group_count = fm.GroupCount
+        myids = []
+        for i in range(1000):
+            myids.append(fm.addGroup("group" + str(i), "Node"))
+        for grpid in myids:
+            fm.removeGroup(grpid)
+        new_group_count = fm.GroupCount
+        self.assertEqual(old_group_count, new_group_count,
+                         msg="GroupCount before and after adding and deleting groups differ: {0} != {1}".format(old_group_count, new_group_count))
+
+    def test_add_group_elements(self):
+        """
+        Add a node group, add elements to it. Verify that elements added
+        and elements in getGroupElements are the same.
+        """
+        from femexamples.meshes.mesh_canticcx_tetra10 import (create_nodes,
+                                                              create_elements)
+        import Fem
+
+        fm = Fem.FemMesh()
+        control = create_nodes(fm)
+        if not control:
+            print("failed to create nodes")
+        control = create_elements(fm)
+        if not control:
+            print("failed to create elements")
+
+        # information
+        print(fm)
+
+        elements_to_be_added = [1,2,3,4,49,64,88,100,102,188,189,190,191]
+        myid = fm.addGroup("mynodegroup", "Node")
+
+        print(fm.getGroupElements(myid))
+
+        print(fm.addGroupElements(myid, elements_to_be_added))
+        elements_returned = list(fm.getGroupElements(myid))  # returns tuple
+        print(elements_returned)
+        self.assertEqual(elements_to_be_added, elements_returned,
+                         msg="elements to be added {0} and elements returned {1} differ".format(elements_to_be_added, elements_returned))
+
+    # TODO: add elements to group with another type. Should be empty at the end.
+
+    def tearDown(
+        self
+    ):
+        # clearance, is executed after every test
+        FreeCAD.closeDocument(self.doc_name)
+
